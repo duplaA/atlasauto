@@ -3,23 +3,52 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/icon.png" />
+    <link rel="icon" type="image/x-icon" href="icons/icon.png">
     <title>Atlas Auto Progress</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+<!-- GLOW -->
 <div class="glow-container">
     <div class="glow-orb"></div>
     <div class="glow-orb"></div>
     <div class="glow-orb"></div>
     <div class="glow-orb"></div>
 </div>
-<!-- Sticky Header -->
-<header class="sticky-header">
-    <h1>Atlas Auto Progress</h1>
-    <p class="subtitle">Real-time updates by @DuplaA</p>
-</header>
+
+<!-- HEADER -->
+<div class="title-container" id="title-container">
+    <div class="title-pill">
+        <h1>Atlas Auto Progress</h1>
+        <p class="subtitle">Real-time updates from @SkreyzzG</p>
+    </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside id="github-sidebar">
+    <h3>GitHub Live</h3>
+    <div id="github-stats">
+        <div class="github-stat">
+            <span>Commits (24h)</span>
+            <strong id="commit-count">—</strong>
+        </div>
+        <div class="github-stat">
+            <span>Latest Commit</span>
+            <strong id="latest-commit">—</strong>
+        </div>
+        <div class="github-stat">
+            <span>Latest Release</span>
+            <strong id="latest-release">—</strong>
+        </div>
+    </div>
+</aside>
 
 <!-- Floating + Button -->
 <button id="fab" class="fab">+</button>
@@ -27,10 +56,21 @@
 <!-- Post Composer Modal -->
 <div id="composer-modal" class="modal hidden">
     <div class="modal-content">
-        <span id="close-composer" class="close">×</span>
-        <input type="text" id="display-name" placeholder="Your name" />
+        <button id="close-composer" class="close">×</button>
+
+        <div class="composer-header">
+            <div class="composer-avatar" id="avatar-preview">S</div>
+            <div id="name-preview" contenteditable="true" placeholder="Your name">@SkreyzzG</div>
+        </div>
+
         <textarea id="post-content" placeholder="What's happening?"></textarea>
-        <button id="submit-post">Post</button>
+
+        <div class="char-counter" id="char-counter">280</div>
+
+        <div class="composer-actions">
+            <div></div>
+            <button id="submit-post" disabled>Post</button>
+        </div>
     </div>
 </div>
 
@@ -48,9 +88,58 @@
 
 <!-- Feed -->
 <main id="feed">
-    <div id="posts-container"></div>
+    <div>
+        <div id="posts-container"></div>
+    </div>
 </main>
 
 <script src="script.js"></script>
+
+<!-- Mobile GitHub page (hidden by default) -->
+<div id="github-mobile" class="mobile-page hidden" aria-hidden="true">
+    <div class="mobile-page-header">
+        <button id="github-mobile-back" class="back-btn" aria-label="Back">←</button>
+        <h3>GitHub Live</h3>
+    </div>
+    <div id="github-mobile-content" class="mobile-page-content">
+        <!-- Will be populated by JS (commit count / latest commit / latest release) -->
+        <div class="github-stat">
+            <span>Commits (24h)</span>
+            <strong id="mobile-commit-count">—</strong>
+        </div>
+        <div class="github-stat">
+            <span>Latest Commit</span>
+            <strong id="mobile-latest-commit">—</strong>
+        </div>
+        <div class="github-stat">
+            <span>Latest Release</span>
+            <strong id="mobile-latest-release">—</strong>
+        </div>
+        <div id="mobile-issues-list" style="margin-top:12px;"></div>
+    </div>
+</div>
+
+<!-- bottom navigation for mobile app feel (adds Github button) -->
+<nav class="bottom-nav" id="bottom-nav" aria-label="Main navigation">
+    <button id="tab-home" class="active" aria-label="Home">
+        <span class="icon" aria-hidden="true"></span>
+        <span>Home</span>
+    </button>
+    <button id="tab-new" aria-label="New">
+        <span class="icon" aria-hidden="true"></span>
+        <span>New</span>
+    </button>
+    <button id="tab-issues" aria-label="Issues">
+        <span class="icon" aria-hidden="true"></span>
+        <span>Issues</span>
+    </button>
+
+    <!-- Github button (will only show on mobile; hidden on desktop by CSS) -->
+    <button id="tab-github" aria-label="GitHub">
+        <span class="icon" aria-hidden="true"></span>
+        <span>GitHub</span>
+    </button>
+</nav>
+
 </body>
 </html>
