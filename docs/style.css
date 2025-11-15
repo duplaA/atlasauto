@@ -1,6 +1,6 @@
-/* docs/style.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+/* ——— RESET & BASE ——— */
 * {
     margin: 0;
     padding: 0;
@@ -8,199 +8,364 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     background: #000;
     color: #e7e9ea;
-    line-height: 1.6;
-    padding: 16px;
-    max-width: 640px;
-    margin: 0 auto;
+    line-height: 1.5;
+    padding-bottom: 80px;
+    position: relative;
+    overflow-x: hidden;
+    min-height: 100vh;
 }
 
-header {
+/* ——— iOS 26 GLASS LIGHT ENGINE ——— */
+.glow-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.glow-orb {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle at center,
+    rgba(29, 155, 240, 0.25) 0%,
+    rgba(29, 155, 240, 0.15) 30%,
+    rgba(29, 155, 240, 0.05) 60%,
+    transparent 80%
+    );
+    filter: blur(80px);
+    border-radius: 50%;
+    animation: drift 20s infinite ease-in-out;
+    mix-blend-mode: screen;
+    opacity: 0.7;
+}
+
+/* Orb positions & delays */
+.glow-orb:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+.glow-orb:nth-child(2) { top: 40%; right: 15%; animation-delay: 5s; width: 500px; height: 500px; }
+.glow-orb:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 10s; width: 700px; height: 700px; }
+.glow-orb:nth-child(4) { top: 60%; right: 25%; animation-delay: 15s; width: 450px; height: 450px; }
+
+/* Drifting animation */
+@keyframes drift {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.7;
+    }
+    25% {
+        transform: translate(100px, -80px) scale(1.1);
+        opacity: 0.9;
+    }
+    50% {
+        transform: translate(-60px, 60px) scale(0.9);
+        opacity: 0.6;
+    }
+    75% {
+        transform: translate(80px, 40px) scale(1.15);
+        opacity: 0.8;
+    }
+}
+
+/* Mobile: smaller glows */
+@media (max-width: 768px) {
+    .glow-orb {
+        width: 400px !important;
+        height: 400px !important;
+        filter: blur(60px);
+    }
+}
+
+/* ——— PREMIUM iOS 26 TITLE BAR ——— */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 20px 0 16px;
     text-align: center;
-    margin-bottom: 32px;
-    animation: fadeIn 0.6s ease-out;
+    background: rgba(22, 24, 28, 0.75);
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border-bottom: 1px solid rgba(47, 51, 54, 0.6);
+    overflow: hidden;
 }
 
-h1 {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 4px;
+/* Title text — gradient only, no animation */
+.sticky-header h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(
+            to right,
+            #ffffff 0%,
+            #a0d8ff 40%,
+            #6bb6ff 60%,
+            #ffffff 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-header p {
+/* Optional subtitle */
+.subtitle {
+    font-size: 0.75rem;
     color: #71767b;
-    font-size: 0.95rem;
+    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
 }
 
-#post-form {
+/* Mobile */
+@media (max-width: 480px) {
+    .sticky-header { padding: 16px 0 12px; }
+    .sticky-header h1 { font-size: 1.25rem; }
+}
+
+/* ——— FLOATING ACTION BUTTON ——— */
+.fab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 56px;
+    height: 56px;
+    background: #1d9bf0;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: 300;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(29,155,240,0.4);
+    z-index: 99;
+    transition: transform 0.2s, background 0.2s;
+}
+.fab:hover {
+    background: #1a8cd8;
+    transform: scale(1.1);
+}
+
+/* ——— MODALS ——— */
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+.modal.hidden { display: none; }
+
+.modal-content {
     background: #16181c;
     border: 1px solid #2f3336;
     border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
     padding: 20px;
-    margin-bottom: 24px;
-    animation: slideUp 0.5s ease-out;
+    position: relative;
 }
 
-#display-name, #post-content {
+.close {
+    position: absolute;
+    top: 12px; right: 16px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #71767b;
+}
+.close:hover { color: #e7e9ea; }
+
+/* Composer inputs */
+#display-name,
+#post-content {
     width: 100%;
-    padding: 12px;
     background: #000;
     border: 1.5px solid #2f3336;
     border-radius: 12px;
+    padding: 12px;
     color: #e7e9ea;
     font-size: 1rem;
     margin-bottom: 12px;
-    transition: border 0.2s;
 }
-
-#display-name::placeholder, #post-content::placeholder {
-    color: #71767b;
-}
-
-#display-name:focus, #post-content:focus {
+#display-name::placeholder,
+#post-content::placeholder { color: #71767b; }
+#display-name:focus,
+#post-content:focus {
     outline: none;
     border-color: #1d9bf0;
 }
-
-#post-content {
-    min-height: 100px;
-    resize: vertical;
-}
+#post-content { min-height: 100px; resize: vertical; }
 
 #submit-post {
     background: #1d9bf0;
     color: white;
     border: none;
-    padding: 12px 20px;
+    padding: 12px;
     border-radius: 12px;
     font-weight: 600;
-    cursor: pointer;
     width: 100%;
-    font-size: 1rem;
-    transition: background 0.2s;
+    cursor: pointer;
 }
+#submit-post:hover { background: #1a8cd8; }
 
-#submit-post:hover {
-    background: #1a8cd8;
-}
-
+/* ——— FEED ——— */
 #feed {
-    animation: fadeIn 0.6s ease-out;
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 16px;
 }
+#posts-container { margin-top: 16px; }
 
+/* ——— POST CARD ——— */
 .post {
-    background: #16181c;
-    border: 1px solid #2f3336;
+    background: rgba(22, 24, 28, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(47, 51, 54, 0.5);
     border-radius: 16px;
     padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
     opacity: 0;
     transform: translateY(20px);
-    animation: slideUpFade 0.4s ease-out forwards;
+    animation: slideUp 0.4s ease-out forwards;
+    position: relative;
+    z-index: 1;
 }
 
-.post:nth-child(1) { animation-delay: 0.05s; }
-.post:nth-child(2) { animation-delay: 0.10s; }
-.post:nth-child(3) { animation-delay: 0.15s; }
-/* Add more if needed */
+/* Light bloom under post */
+.post::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    filter: blur(20px);
+    z-index: -1;
+    opacity: 0.6;
+    transform: scale(1.02);
+}
 
 .post-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #1d9bf0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    margin-right: 12px;
     font-size: 0.9rem;
 }
-
-.post-name {
-    font-weight: 600;
-    color: #e7e9ea;
-}
-
-.post-time {
-    color: #71767b;
-}
+.post-name { font-weight: 600; color: #e7e9ea; }
+.post-time { color: #71767b; margin-left: auto; }
 
 .post-content {
-    margin-top: 8px;
+    margin: 8px 0;
+    font-size: 1.05rem;
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-size: 1rem;
-    line-height: 1.5;
 }
-
 .post-content a {
     color: #1d9bf0;
     text-decoration: none;
+    pointer-events: auto !important;
 }
+.post-content a:hover { text-decoration: underline; }
 
-.post-content a:hover {
-    text-decoration: underline;
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: #71767b;
 }
-
-.delete-btn {
-    background: #ef4444;
-    color: white;
+.like-btn {
+    background: none;
     border: none;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.8rem;
+    color: inherit;
     cursor: pointer;
-    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto !important;
+}
+.like-btn.liked { color: #f91880; }
+.like-btn.liked .heart { fill: #f91880; }
+
+/* Divider */
+.post + .post {
+    border-top: 1px solid #2f3336;
+    margin-top: 12px;
+    padding-top: 12px;
 }
 
-.delete-btn:hover {
-    background: #dc2626;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
+/* ——— ANIMATIONS ——— */
 @keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideUpFade {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ——— PASSWORD MODAL ——— */
+.password-modal {
+    max-width: 380px;
+    text-align: center;
+}
+.password-modal h3 {
+    margin-bottom: 16px;
+    color: #e7e9ea;
+}
+#password-input {
+    width: 100%;
+    background: #000;
+    border: 1.5px solid #2f3336;
+    border-radius: 12px;
+    padding: 12px;
+    color: #e7e9ea;
+    font-size: 1rem;
+    margin-bottom: 16px;
+}
+#password-input::placeholder { color: #71767b; }
+#password-input:focus {
+    outline: none;
+    border-color: #1d9bf0;
 }
 
-.post.deleting {
-    animation: slideDownFade 0.3s ease-in forwards;
+.password-actions {
+    display: flex;
+    gap: 12px;
 }
-
-@keyframes slideDownFade {
-    to {
-        opacity: 0;
-        transform: translateY(10px);
-        height: 0;
-        padding: 0;
-        margin: 0;
-        border: 0;
-    }
+.password-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
 }
-
-/* Responsive */
-@media (max-width: 480px) {
-    body { padding: 12px; }
-    h1 { font-size: 1.6rem; }
+#cancel-password {
+    background: #2f3336;
+    color: #e7e9ea;
 }
+#cancel-password:hover { background: #3a3f44; }
+#confirm-password {
+    background: #1d9bf0;
+    color: white;
+}
+#confirm-password:hover { background: #1a8cd8; }

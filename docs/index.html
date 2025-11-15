@@ -1,28 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Atlas Auto Progress</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<header>
+<div class="glow-container">
+    <div class="glow-orb"></div>
+    <div class="glow-orb"></div>
+    <div class="glow-orb"></div>
+    <div class="glow-orb"></div>
+</div>
+<!-- Sticky Header -->
+<header class="sticky-header">
     <h1>Atlas Auto Progress</h1>
-    <p>A lightweight microblog for product progress updates</p>
+    <p class="subtitle">Real-time updates by @DuplaA</p>
 </header>
-<main>
-    <section id="post-form">
-        <input type="text" id="display-name" placeholder="Your display name" required>
-        <textarea id="post-content" placeholder="Write your update..." required></textarea>
-        <button id="submit-post">Publish</button>
-    </section>
-    <section id="feed">
-        <h2>Progress Updates</h2>
-        <div id="posts-container"></div>
-    </section>
+
+<!-- Floating + Button -->
+<button id="fab" class="fab">+</button>
+
+<!-- Post Composer Modal -->
+<div id="composer-modal" class="modal hidden">
+    <div class="modal-content">
+        <span id="close-composer" class="close">×</span>
+        <input type="text" id="display-name" placeholder="Your name" />
+        <textarea id="post-content" placeholder="What's happening?"></textarea>
+        <button id="submit-post">Post</button>
+    </div>
+</div>
+
+<!-- Password Modal -->
+<div id="password-modal" class="modal hidden">
+    <div class="modal-content password-modal">
+        <h3>Enter Password</h3>
+        <input type="password" id="password-input" placeholder="Required to post" />
+        <div class="password-actions">
+            <button id="cancel-password">Cancel</button>
+            <button id="confirm-password">Post</button>
+        </div>
+    </div>
+</div>
+
+<!-- Feed -->
+<main id="feed">
+    <div id="posts-container"></div>
 </main>
+
 <script src="script.js"></script>
 </body>
 </html>
