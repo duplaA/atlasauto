@@ -57,27 +57,32 @@ public class VehicleController : MonoBehaviour
 
     void DiscoverWheels()
     {
+        // Only auto-discover if the array is empty or null
         if (wheels != null && wheels.Length > 0) return;
         
-        wheels = GetComponentsInChildren<VehicleWheel>();
-        
-        if (wheels == null || wheels.Length == 0)
+        var wheelColliders = GetComponentsInChildren<WheelCollider>();
+        if (wheelColliders.Length == 0)
         {
-            var wcs = GetComponentsInChildren<WheelCollider>();
-            wheels = new VehicleWheel[wcs.Length];
-            for (int i = 0; i < wcs.Length; i++)
-            {
-                var wc = wcs[i];
-                var vw = wc.gameObject.GetComponent<VehicleWheel>() ?? wc.gameObject.AddComponent<VehicleWheel>();
-                vw.wheelCollider = wc;
-                if (vw.wheelVisual == null && wc.transform.childCount > 0)
-                    vw.wheelVisual = wc.transform.GetChild(0);
-                
-                bool isFront = wc.transform.localPosition.z > 0;
-                vw.isSteer = isFront;
-                vw.isMotor = !isFront;
-                wheels[i] = vw;
-            }
+            Debug.LogWarning("[VehicleController] No WheelColliders found in children.");
+            return;
+        }
+
+        wheels = new VehicleWheel[wheelColliders.Length];
+        for (int i = 0; i < wheelColliders.Length; i++)
+        {
+            var wc = wheelColliders[i];
+            var vw = wc.gameObject.GetComponent<VehicleWheel>() ?? wc.gameObject.AddComponent<VehicleWheel>();
+            vw.wheelCollider = wc;
+            
+            if (vw.wheelVisual == null && wc.transform.childCount > 0)
+                vw.wheelVisual = wc.transform.GetChild(0);
+            
+            // Default steering/motor logic based on position relative to root
+            // Using a small epsilon to avoid float inaccuracies
+            bool isFront = transform.InverseTransformPoint(wc.transform.position).z > 0.1f;
+            vw.isSteer = isFront;
+            vw.isMotor = !isFront;
+            wheels[i] = vw;
         }
     }
 
@@ -158,7 +163,8 @@ public class VehicleController : MonoBehaviour
 
         if (numDriven > 0 && gear != 0 && brakeTorque < 50f)
         {
-            float wheelTorque = (engineTorque * Mathf.Abs(totalRatio) * transmission.efficiency * clutchPos) / numDriven;
+            float totalAvailableTorque = engineTorque * Mathf.Abs(totalRatio) * transmission.efficiency * clutchPos;
+            float wheelTorque = totalAvailableTorque / numDriven;
             
             if (gear == -1) wheelTorque = -wheelTorque;
             
@@ -169,7 +175,7 @@ public class VehicleController : MonoBehaviour
             {
                 if (w != null && w.isMotor)
                 {
-                    float torque = wheelTorque;
+                    float finalTorque = wheelTorque;
                     
                     if (enableTC)
                     {
@@ -177,11 +183,15 @@ public class VehicleController : MonoBehaviour
                         if (w.IsGrounded(out hit) && Mathf.Abs(hit.forwardSlip) > tcSlipLimit)
                         {
                             float over = Mathf.Abs(hit.forwardSlip) - tcSlipLimit;
-                            torque *= Mathf.Clamp01(1f - over * 3f);
+                            finalTorque *= Mathf.Clamp01(1f - over * 3f);
                         }
                     }
                     
-                    w.ApplyTorque(torque);
+                    w.ApplyTorque(finalTorque);
+                }
+                else if (w != null)
+                {
+                    w.ApplyTorque(0f);
                 }
             }
         }

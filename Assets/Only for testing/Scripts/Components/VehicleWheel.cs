@@ -9,6 +9,7 @@ public class VehicleWheel : MonoBehaviour
     public Transform wheelVisual;
     public bool isSteer;
     public bool isMotor;
+    public Vector3 visualRotationOffset = Vector3.zero;
 
     private Vector3 worldPos;
     private Quaternion worldRot;
@@ -28,7 +29,7 @@ public class VehicleWheel : MonoBehaviour
 
         wheelCollider.GetWorldPose(out worldPos, out worldRot);
         wheelVisual.position = worldPos;
-        wheelVisual.rotation = worldRot;
+        wheelVisual.rotation = worldRot * Quaternion.Euler(visualRotationOffset);
     }
 
     /// <summary>
