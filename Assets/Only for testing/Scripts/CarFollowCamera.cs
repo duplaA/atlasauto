@@ -30,7 +30,7 @@ public class CarFollowCamera : MonoBehaviour // Renamed from Camera
         }
 
         float scroll = Mouse.current.scroll.ReadValue().y;
-        distance = Mathf.Clamp(distance - scroll * 0.01f, minDistance, maxDistance);
+        distance = Mathf.Clamp(distance - scroll * 1f, minDistance, maxDistance);
 
         Quaternion rotation = Quaternion.Euler(_currentY, _currentX, 0);
         transform.position = target.position + (rotation * new Vector3(0, 0, -distance));

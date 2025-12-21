@@ -2,42 +2,26 @@ using UnityEngine;
 
 public class VehicleTyres : MonoBehaviour
 {
-    [Header("Friction Settings")]
-    public float gripMultiplier = 1.0f;
-    public float stiffness = 1.0f;
-
-    public void Configure(float mu, float loadSens, float alpha, float camber, float grip,
-                          float stiff, float fwdExSlip, float fwdExVal, float fwdAsSlip, float fwdAsVal,
-                          float sideExSlip, float sideExVal, float sideAsSlip, float sideAsVal)
+    public void UpdateFriction(VehicleWheel[] wheels)
     {
-        gripMultiplier = grip;
-        stiffness = stiff;
-    }
-
-    public void UpdateFriction(VehicleWheel[] wheels, float nominalFz)
-    {
-        if (wheels == null) return;
-        
-        foreach (var wheel in wheels)
+        foreach (var w in wheels)
         {
-            if (wheel == null || wheel.wheelCollider == null) continue;
+            if (w.wheelCollider == null) continue;
+            
+            // Forward (Gyorsulás/Fékezés) tapadás
+            WheelFrictionCurve fwd = w.wheelCollider.forwardFriction;
+            fwd.extremumSlip = 0.3f;
+            fwd.extremumValue = 1.5f; // Megemelt tapadás
+            fwd.asymptoteValue = 1.0f;
+            fwd.stiffness = 2.0f; // Ne csússzon
+            w.wheelCollider.forwardFriction = fwd;
 
-            // Simple friction setup - just ensure reasonable defaults
-            WheelFrictionCurve fwdCurve = wheel.wheelCollider.forwardFriction;
-            fwdCurve.extremumSlip = 0.4f;
-            fwdCurve.extremumValue = 1.0f * gripMultiplier;
-            fwdCurve.asymptoteSlip = 0.8f;
-            fwdCurve.asymptoteValue = 0.6f * gripMultiplier;
-            fwdCurve.stiffness = stiffness;
-            wheel.wheelCollider.forwardFriction = fwdCurve;
-
-            WheelFrictionCurve sideCurve = wheel.wheelCollider.sidewaysFriction;
-            sideCurve.extremumSlip = 0.2f;
-            sideCurve.extremumValue = 1.0f * gripMultiplier;
-            sideCurve.asymptoteSlip = 0.5f;
-            sideCurve.asymptoteValue = 0.7f * gripMultiplier;
-            sideCurve.stiffness = stiffness;
-            wheel.wheelCollider.sidewaysFriction = sideCurve;
+            // Sideways (Kanyarodás) tapadás
+            WheelFrictionCurve side = w.wheelCollider.sidewaysFriction;
+            side.extremumSlip = 0.2f;
+            side.extremumValue = 1.8f; // Nagyon tapadjon kanyarban
+            side.stiffness = 2.5f;
+            w.wheelCollider.sidewaysFriction = side;
         }
     }
 }
