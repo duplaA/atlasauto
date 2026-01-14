@@ -1,0 +1,397 @@
+/* DriverHUD.uss */
+
+:root {
+    --bg-primary: rgb(9, 9, 11);
+    --bg-secondary: rgb(24, 24, 27);
+    --bg-tertiary: rgb(39, 39, 42);
+    --bg-hover: rgb(52, 52, 56);
+    --bg-glass: rgba(9, 9, 11, 0.98);
+    
+    --accent-blue: rgb(59, 130, 246);
+    --accent-green: rgb(34, 197, 94);
+    --accent-red: rgb(239, 68, 68);
+    --accent-muted: rgb(113, 113, 122);
+    
+    --text-primary: rgb(250, 250, 250);
+    --text-secondary: rgb(161, 161, 170);
+    --text-muted: rgb(82, 82, 91);
+    
+    --border-color: rgb(39, 39, 42);
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    
+    /* Animation Speeds */
+    --transit-speed: 0.3s;
+}
+
+/* ========== MAIN CONTAINER ========== */
+.hud-container {
+    position: absolute;
+    bottom: 20px;
+    left: 30%;
+    width: 40%;
+    height: 180px; 
+    
+    background-color: var(--bg-primary);
+    border-radius: 24px;
+    border-width: 0;
+    border-color: var(--border-color);
+    
+    flex-direction: column;
+    overflow: hidden;
+    
+    opacity: 0.98;
+    
+    /* height transition */
+    transition-property: height;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out-cubic;
+}
+
+/* ========== TOP BAR ========== */
+.top-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 16px;
+    background-color: var(--bg-secondary);
+    border-bottom-width: 1px;
+    border-color: var(--border-color);
+    flex-shrink: 0;
+}
+
+.burger-button {
+    width: 28px;
+    height: 28px;
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 4px;
+    -unity-background-scale-mode: scale-to-fit;
+    color: var(--text-secondary);
+    font-size: 18px;
+    -unity-text-align: middle-center;
+}
+
+.burger-button:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.top-bar-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+
+.drivetrain-tag {
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    padding: 2px 8px;
+    color: var(--accent-blue);
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+.main-content {
+    flex-grow: 1;
+    flex-direction: row;
+    padding: 10px 16px;
+}
+
+.left-panel {
+    width: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 8px;
+}
+
+.input-column {
+    width: 24px;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.input-track {
+    flex-grow: 1;
+    width: 8px;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    justify-content: flex-end; 
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.input-fill {
+    width: 100%;
+    height: 0%;
+    background-color: var(--accent-green);
+    border-radius: 4px;
+    min-height: 2px;
+}
+.brake { background-color: var(--accent-red); }
+
+.input-label {
+    font-size: 8px;
+    color: var(--text-muted);
+    -unity-font-style: bold;
+}
+
+/* Center Panel */
+.center-panel {
+    flex-grow: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.speed-group {
+    flex-direction: row;
+    align-items: flex-end;
+    margin-bottom: -5px;
+}
+
+.speed-value {
+    font-size: 64px;
+    color: var(--text-primary);
+    -unity-font-style: bold;
+    margin: 0; padding: 0;
+}
+
+.speed-unit {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-left: 6px;
+}
+
+.gear-badge {
+    position: absolute;
+    top: 10px;
+    right: 20%;
+    font-size: 24px;
+    color: var(--accent-blue);
+    -unity-font-style: bold;
+}
+
+.rpm-bar-container {
+    width: 100%;
+    height: 6px;
+    background-color: var(--bg-tertiary);
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.rpm-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--text-secondary);
+    border-radius: 3px;
+    transition-duration: 0.1s;
+}
+.rpm-fill.high { background-color: var(--accent-blue); }
+.rpm-fill.redline { background-color: var(--accent-red); }
+
+.right-panel {
+    width: 80px;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-row { margin-bottom: 8px; }
+.stat-label { font-size: 8px; color: var(--text-muted); -unity-font-style: bold; }
+.stat-value { font-size: 16px; color: var(--text-primary); -unity-font-style: bold; }
+
+.footer {
+    height: 36px;
+    padding-bottom: 2px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-secondary);
+    border-top-width: 1px;
+    border-color: var(--border-color);
+}
+
+.footer-item {
+    flex-direction: row;
+    align-items: flex-end;
+    margin: 0 10px;
+}
+.footer-label { font-size: 8px; color: var(--text-muted); margin-right: 4px; }
+.footer-text { font-size: 10px; color: var(--text-secondary); }
+
+
+.menu-container {
+    position: absolute;
+    top: 40px;
+    left: 0; right: 0; bottom: 0;
+    background-color: var(--bg-primary);
+    flex-direction: row;
+    display: none;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+.menu-container.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.menu-sidebar {
+    width: 110px;
+    background-color: var(--bg-secondary);
+    border-right-width: 1px;
+    border-color: var(--border-color);
+    padding: 10px;
+}
+
+.menu-tab-btn {
+    height: 32px;
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    -unity-text-align: middle-left;
+    padding-left: 10px;
+    margin-bottom: 2px;
+}
+
+.menu-tab-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+.menu-tab-btn.active {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    -unity-font-style: bold;
+}
+
+.menu-content {
+    flex-grow: 1;
+    padding: 16px;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-header {
+    font-size: 12px;
+    color: var(--text-muted);
+    border-bottom-width: 1px;
+    border-color: var(--border-color);
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+}
+
+.setting-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    height: 30px;
+}
+
+.setting-label { font-size: 12px; color: var(--text-primary); }
+
+.hud-toggle {
+    width: 40px; height: 20px;
+    background-color: var(--bg-tertiary);
+    border-radius: 10px;
+    border-width: 0;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2px;
+}
+.hud-toggle.on { 
+    background-color: var(--accent-blue);
+    align-items: flex-end;
+}
+.toggle-handle {
+    width: 16px; height: 16px;
+    background-color: white;
+    border-radius: 8px;
+}
+
+.segment-control {
+    flex-direction: row;
+    background-color: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 2px;
+    height: 28px;
+    /* width: 150px; Removed fixed width */
+    flex-grow: 1;
+    min-width: 120px;
+}
+.segment-btn {
+    flex-grow: 1;
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+.segment-btn.selected {
+    background-color: var(--bg-primary); /* Card feel */
+    color: var(--text-primary);
+    /* shadow-opacity removed as it is invalid */
+}
+
+.hud-slider {
+    width: 150px;
+}
+
+.extension-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-top: 5px;
+}
+
+.app-item {
+    width: 70px;
+    height: 80px;
+    flex-direction: column;
+    align-items: center;
+    margin: 5px 8px;
+}
+
+.app-icon-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    background-color: var(--bg-tertiary);
+    border-width: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--text-primary);
+    transition-duration: 0.1s;
+}
+
+.app-icon-btn:hover {
+    background-color: var(--bg-hover);
+    scale: 1.05;
+}
+
+.app-icon-btn.active {
+    background-color: var(--accent-blue);
+    color: white;
+}
+
+.app-label {
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -unity-text-align: middle-center;
+    width: 100%;
+}

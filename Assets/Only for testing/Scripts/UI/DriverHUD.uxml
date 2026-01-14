@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="DriverHUD.uss" />
+    
+    <!-- MAIN HUD ROOT -->
+    <ui:VisualElement name="hud-root" class="hud-container">
+        
+        <!-- Top Bar -->
+        <ui:VisualElement name="top-bar" class="top-bar">
+            <ui:Button name="burger-btn" text="⋮" class="burger-button" />
+            <ui:Label text="ATLAS AUTO" class="top-bar-title" />
+            <ui:Label name="drivetrain-label" text="AWD" class="drivetrain-tag" />
+        </ui:VisualElement>
+        
+        <!-- Content Area -->
+        <ui:VisualElement name="main-content" class="main-content">
+            <!-- Left: Inputs -->
+            <ui:VisualElement name="left-panel" class="left-panel">
+                <ui:VisualElement class="input-column">
+                    <ui:VisualElement class="input-track">
+                        <ui:VisualElement name="throttle-fill" class="input-fill" />
+                    </ui:VisualElement>
+                    <ui:Label text="THR" class="input-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="input-column">
+                    <ui:VisualElement class="input-track">
+                        <ui:VisualElement name="brake-fill" class="input-fill brake" />
+                    </ui:VisualElement>
+                    <ui:Label text="BRK" class="input-label" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            
+            <!-- Center: Speed/Gear/RPM -->
+            <ui:VisualElement name="center-panel" class="center-panel">
+                <ui:VisualElement class="speed-group">
+                    <ui:Label name="speed-value" text="0" class="speed-value" />
+                    <ui:Label text="KM/H" class="speed-unit" />
+                </ui:VisualElement>
+                <ui:Label name="gear-display" text="N" class="gear-badge" />
+                <ui:VisualElement class="rpm-bar-container">
+                    <ui:VisualElement name="rpm-fill" class="rpm-fill" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            
+            <!-- Right: Power -->
+            <ui:VisualElement name="right-panel" class="right-panel">
+                <ui:VisualElement class="stat-row">
+                    <ui:Label text="POWER" class="stat-label" />
+                    <ui:Label name="hp-value" text="0 HP" class="stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-row">
+                    <ui:Label text="TORQUE" class="stat-label" />
+                    <ui:Label name="torque-value" text="0 Nm" class="stat-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        
+        <!-- Footer -->
+        <ui:VisualElement name="footer" class="footer">
+            <ui:VisualElement class="footer-item">
+                <ui:Label text="TRIP" class="footer-label" />
+                <ui:Label name="trip-distance" text="0.0 km" class="footer-text" />
+            </ui:VisualElement>
+            <ui:VisualElement class="footer-item">
+                <ui:Label text="TIME" class="footer-label" />
+                <ui:Label name="trip-time" text="00:00" class="footer-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        
+        <!-- INTEGRATED MENU -->
+        <ui:VisualElement name="menu-container" class="menu-container">
+            <!-- Sidebar -->
+            <ui:VisualElement class="menu-sidebar">
+                <ui:Button name="tab-drive" text="Drive" class="menu-tab-btn active" />
+                <ui:Button name="tab-system" text="System" class="menu-tab-btn" />
+                <ui:Button name="tab-custom" text="Apps" class="menu-tab-btn" />
+            </ui:VisualElement>
+            
+            <!-- Content -->
+            <ui:VisualElement class="menu-content">
+                
+                <!-- Drive Tab -->
+                <ui:VisualElement name="view-drive" style="display: flex;">
+                    <ui:Label text="DRIVING ASSIST" class="settings-header" />
+                    
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Drivetrain" class="setting-label" />
+                        <ui:VisualElement class="segment-control">
+                            <ui:Button name="radio-rwd" text="RWD" class="segment-btn" />
+                            <ui:Button name="radio-fwd" text="FWD" class="segment-btn" />
+                            <ui:Button name="radio-awd" text="AWD" class="segment-btn selected" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Traction Control" class="setting-label" />
+                        <ui:Button name="toggle-traction" class="hud-toggle on"><ui:VisualElement class="toggle-handle" /></ui:Button>
+                    </ui:VisualElement>
+                    
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="ABS System" class="setting-label" />
+                        <ui:Button name="toggle-abs" class="hud-toggle on"><ui:VisualElement class="toggle-handle" /></ui:Button>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- System Tab -->
+                <ui:VisualElement name="view-system" style="display: none;">
+                    <ui:Label text="DISPLAY" class="settings-header" />
+                    
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="UI Scale" class="setting-label" />
+                        <ui:Slider name="scale-slider" low-value="0.5" high-value="1.5" value="1.0" class="hud-slider" />
+                    </ui:VisualElement>
+                    
+                    <ui:Label text="VEHICLE SYSTEM" class="settings-header" style="margin-top: 10px;" />
+                     <ui:VisualElement class="setting-row">
+                        <ui:Label text="Headlights" class="setting-label" />
+                        <ui:Button name="toggle-headlights" class="hud-toggle"><ui:VisualElement class="toggle-handle" /></ui:Button>
+                    </ui:VisualElement>
+                    
+                     <ui:VisualElement class="setting-row">
+                        <ui:Button name="btn-reset-trip" text="Reset Trip Data" class="ext-btn" style="width: 100%;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- Custom Tab -->
+                <ui:VisualElement name="view-custom" style="display: none;">
+                    <ui:Label text="EXTENSIONS" class="settings-header" />
+                    <ui:VisualElement name="extensions-grid" class="extension-grid" />
+                </ui:VisualElement>
+                
+            </ui:VisualElement>
+        </ui:VisualElement>
+        
+    </ui:VisualElement>
+</ui:UXML>

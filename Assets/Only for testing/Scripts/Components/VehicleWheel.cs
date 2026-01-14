@@ -45,20 +45,6 @@ public class VehicleWheel : MonoBehaviour
             }
         }
         
-        // Validation warnings
-        if (wheelCollider == null)
-        {
-            Debug.LogError($"[VehicleWheel] {gameObject.name}: No WheelCollider found! Assign it in Inspector or ensure a WheelCollider is on this GameObject.");
-        }
-        else
-        {
-            // Ensure WheelCollider is configured correctly
-            if (wheelCollider.suspensionDistance <= 0f)
-            {
-                Debug.LogWarning($"[VehicleWheel] {gameObject.name}: WheelCollider.suspensionDistance is {wheelCollider.suspensionDistance}. This may cause grounding issues.");
-            }
-        }
-        
         if (wheelVisual == null)
         {
             Debug.LogWarning($"[VehicleWheel] {gameObject.name}: No wheelVisual assigned. Visual sync will be skipped.");

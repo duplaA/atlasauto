@@ -60,6 +60,18 @@ public class VehicleController : MonoBehaviour
     // Gear Logic
     private bool isInputReleaseRequired = false; // For stop-and-switch logic
 
+    // Input Override (for AI/Self-driving)
+    private Vector2 moveInputOverride;
+    private bool useOverrideInput = false;
+
+    // Exposed Input States
+    public float currentThrottle { get; private set; }
+    public float currentBrake { get; private set; }
+    public float currentSteer { get; private set; }
+    public bool isCurrentlyBraking => isBraking;
+
+    public Vector2 EffectiveInput => useOverrideInput ? moveInputOverride : moveInput;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -79,6 +91,9 @@ public class VehicleController : MonoBehaviour
 
         if (transmission == null) transmission = GetComponent<VehicleTransmission>();
         if (transmission == null) transmission = gameObject.AddComponent<VehicleTransmission>();
+
+        // New Component: VehicleDataLink
+        if (GetComponent<VehicleDataLink>() == null) gameObject.AddComponent<VehicleDataLink>();
 
         SyncPowertrainSettings();
     }
@@ -116,23 +131,53 @@ public class VehicleController : MonoBehaviour
     void DiscoverWheels()
     {
         VehicleWheel[] allWheels = GetComponentsInChildren<VehicleWheel>();
+        // Get colliders from local children first, then fallback to global search
+        WheelCollider[] childColliders = GetComponentsInChildren<WheelCollider>();
+        WheelCollider[] allColliders = childColliders;
         
         System.Collections.Generic.List<VehicleWheel> uniqueWheelList = new System.Collections.Generic.List<VehicleWheel>();
         System.Collections.Generic.HashSet<WheelCollider> seenColliders = new System.Collections.Generic.HashSet<WheelCollider>();
-        
-        Debug.Log($"[VehicleController] Discovered {allWheels.Length} VehicleWheel components...");
-        
+                
         foreach (var w in allWheels)
         {
+            // SMART LINKER: Search locally first, then globally
             if (w.wheelCollider == null)
             {
-                Debug.LogWarning($"[VehicleController] Skipping {w.gameObject.name} - no WheelCollider assigned");
+                string targetName = w.gameObject.name;
+                
+                // Try child colliders first
+                foreach (var col in childColliders)
+                {
+                    if (col.gameObject.name.Contains(targetName))
+                    {
+                        w.wheelCollider = col;
+                        break;
+                    }
+                }
+
+                // NUCLEAR FALLBACK: Search ENTIRE scene by name if still null
+                if (w.wheelCollider == null)
+                {
+                    WheelCollider[] globalColliders = UnityEngine.Object.FindObjectsByType<WheelCollider>(FindObjectsSortMode.None);
+                    foreach (var col in globalColliders)
+                    {
+                        if (col.gameObject.name.Contains(targetName))
+                        {
+                            w.wheelCollider = col;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // SAFETY: Skip wheels with unassigned WheelCollider
+            if (w.wheelCollider == null)
+            {
                 continue;
             }
             
             if (seenColliders.Contains(w.wheelCollider))
             {
-                Debug.LogWarning($"[VehicleController] Skipping duplicate: {w.gameObject.name} (shares WheelCollider with another VehicleWheel)");
                 continue;
             }
             
@@ -142,33 +187,33 @@ public class VehicleController : MonoBehaviour
         
         wheels = uniqueWheelList.ToArray();
         
-        Debug.Log($"[VehicleController] Using {wheels.Length} unique wheels:");
         foreach (var w in wheels)
         {
+            if (w.wheelCollider == null) continue;
+
             if (w.isFront && !w.isSteer)
             {
                 w.isSteer = true;
-                Debug.Log($"  ✓ {w.gameObject.name} | Radius: {w.wheelCollider.radius:F3}m | isFront: {w.isFront} | [Auto-set isSteer=true]");
-            }
-            else
-            {
-                Debug.Log($"  ✓ {w.gameObject.name} | Radius: {w.wheelCollider.radius:F3}m | isFront: {w.isFront} | isSteer: {w.isSteer}");
             }
         }
         
-        if (wheels.Length != 4)
-        {
-            Debug.LogError($"[VehicleController] WARNING: Expected 4 wheels, have {wheels.Length}. Vehicle may not drive correctly!");
-        }
-        
-        if (wheels.Length > 0 && wheels[0].wheelCollider != null)
+        if (wheels.Length > 0 && wheels[0] != null && wheels[0].wheelCollider != null)
         {
             debugWheelRadius = wheels[0].wheelCollider.radius;
-            float speedAt1000RPM = (1000f * 2f * Mathf.PI * debugWheelRadius / 60f) * 3.6f;
-            Debug.Log($"[VehicleController] Wheel radius: {debugWheelRadius:F3}m | At 1000 RPM = {speedAt1000RPM:F1} km/h");
         }
         
         ApplyDrivetrainConfig();
+    }
+
+    private string GetHierarchyPath(Transform t)
+    {
+        string path = t.name;
+        while (t.parent != null)
+        {
+            t = t.parent;
+            path = t.name + "/" + path;
+        }
+        return path;
     }
     
     void ApplyDrivetrainConfig()
@@ -199,9 +244,11 @@ public class VehicleController : MonoBehaviour
 
     void LateUpdate()
     {
+        Vector2 input = EffectiveInput;
         if (wheels != null)
         {
-            float steerAngle = CalculateSteerAngle(moveInput.x);
+            float steerAngle = CalculateSteerAngle(input.x);
+            currentSteer = input.x;
             float visualCalcRadius = physicsWheelRadius > 0.01f ? physicsWheelRadius : 0.34f;
 
             foreach (var w in wheels) 
@@ -234,7 +281,8 @@ public class VehicleController : MonoBehaviour
 
         float inputThrottle = 0f;
         float inputBrake = 0f;
-        float rawY = moveInput.y;
+        Vector2 input = EffectiveInput;
+        float rawY = input.y;
         
         bool isFreshInput = Mathf.Abs(rawY) > 0.05f && Mathf.Abs(lastInputY) < 0.05f;
         
@@ -304,6 +352,8 @@ public class VehicleController : MonoBehaviour
         }
         
         lastInputY = rawY;
+        currentThrottle = inputThrottle;
+        currentBrake = inputBrake;
         
         if (isInputReleaseRequired)
         {
@@ -420,7 +470,7 @@ public class VehicleController : MonoBehaviour
         }
 
         // Apply to wheels
-        float steerAngle = CalculateSteerAngle(moveInput.x);
+        float steerAngle = CalculateSteerAngle(input.x);
 
         float totalSlip = 0f;
         int slipCount = 0;
@@ -462,7 +512,7 @@ public class VehicleController : MonoBehaviour
                 
                 w.wheelCollider.brakeTorque = brakeTorque;
             }
-            else if (Mathf.Abs(moveInput.y) < 0.1f && speedKMH < 2f && !isInputReleaseRequired)
+            else if (Mathf.Abs(input.y) < 0.1f && speedKMH < 2f && !isInputReleaseRequired)
             {
                 // Auto-Park: Aggressive hold
                 // Also kill RB angular velocity to stop
@@ -505,6 +555,23 @@ public class VehicleController : MonoBehaviour
         else slipRatio = totalSlip / slipCount;
     }
 
+    public void SetInputOverride(Vector2 input, bool active)
+    {
+        if (active && (Mathf.Abs(input.x) > 0.01f || Mathf.Abs(input.y) > 0.01f))
+        {
+            if (Time.frameCount % 60 == 0) 
+                Debug.Log($"[Vehicle] Received AI Override: Steer={input.x:F2}, Throttle={input.y:F2}");
+        }
+        moveInputOverride = input;
+        useOverrideInput = active;
+    }
+
+    public void SetDrivetrain(DrivetrainType type)
+    {
+        drivetrain = type;
+        ApplyDrivetrainConfig();
+    }
+
     float GetAverageDrivenRPM()
     {
         float total = 0;
@@ -536,83 +603,12 @@ public class VehicleController : MonoBehaviour
 
     float CalculateSteerAngle(float input)
     {
+        if (useOverrideInput && Mathf.Abs(input) > 0.01f)
+        {
+            if (Time.frameCount % 60 == 0) Debug.Log($"[Vehicle] AI Steer Angle Calculation: Input={input:F2}, MaxAngle={maxSteerAngle}");
+        }
         if (!speedSensitiveSteering) return input * maxSteerAngle;
         float speedFactor = Mathf.InverseLerp(10f, 120f, speedKMH);
-        // less steering reduction at speed
         return input * Mathf.Lerp(maxSteerAngle, maxSteerAngle * 0.7f, speedFactor);
-    }
-    
-    void OnGUI()
-    {
-        if (engine == null || transmission == null) return;
-        
-        // Count grounded wheels
-        int groundedCount = 0;
-        float avgWheelRPM = 0f;
-        int motorCount = 0;
-        foreach (var w in wheels)
-        {
-            if (w.IsGrounded()) groundedCount++;
-            if (w.isMotor)
-            {
-                avgWheelRPM += Mathf.Abs(w.wheelCollider.rpm);
-                motorCount++;
-            }
-        }
-        if (motorCount > 0) avgWheelRPM /= motorCount;
-        
-        // Main debug box
-        GUI.Box(new Rect(10, 10, 380, 280), "PHYSICS DEBUG");
-        
-        // Speed and drivetrain
-        GUI.Label(new Rect(20, 35, 360, 20), $"Actual Speed: {speedKMH:F1} km/h | {drivetrain}");
-        
-        // PHYSICS VALIDATION: Expected vs Actual speed
-        bool speedMismatch = Mathf.Abs(expectedSpeedKMH - speedKMH) > 5f && speedKMH > 5f;
-        if (speedMismatch) GUI.color = Color.red;
-        GUI.Label(new Rect(20, 55, 360, 20), $"Wheel-Derived Speed: {expectedSpeedKMH:F1} km/h | Slip: {slipRatio * 100f:F0}%");
-        if (speedMismatch) GUI.color = Color.white;
-        
-        // RPM
-        GUI.Label(new Rect(20, 75, 360, 20), $"Engine RPM: {engine.currentRPM:F0} | Wheel RPM: {avgWheelRPM:F0}");
-        GUI.Label(new Rect(20, 95, 360, 20), $"Gear: {transmission.GetGearDisplayString()} | Grounded: {groundedCount}/{wheels.Length}");
-        
-        // Torque
-        GUI.Label(new Rect(20, 120, 360, 20), $"Eng Torque: {engineTorque:F0} Nm | Drive: {driveTorque:F0} Nm");
-        
-        // Power
-        float currentPower = engine.GetCurrentPowerKW(engineTorque, engine.currentRPM);
-        float currentHP = currentPower * 1.341f;
-        GUI.Label(new Rect(20, 140, 360, 20), $"Power: {currentHP:F0} / {engine.horsepowerHP:F0} HP");
-        GUI.Label(new Rect(20, 160, 360, 20), $"Weight: {vehicleMass:F0} kg | Wheel Radius: {debugWheelRadius:F3}m");
-        
-        // Status indicators
-        string status = "";
-        if (transmission.clutchEngagement < 0.9f) status += "[CLUTCH] ";
-        if (groundedCount == 0) status += "[AIRBORNE] ";
-        if (transmission.currentGear == 0) status += "[NEUTRAL] ";
-        if (speedMismatch) status += "[SLIP!] ";
-        
-        // BRAKE INDICATOR
-        if (isBraking)
-        {
-            GUI.color = Color.red;
-            GUI.Label(new Rect(20, 185, 360, 20), ">>> BRAKING <<<");
-            GUI.color = Color.white;
-        }
-        else if (!string.IsNullOrEmpty(status))
-        {
-            GUI.color = Color.yellow;
-            GUI.Label(new Rect(20, 185, 360, 20), status);
-            GUI.color = Color.white;
-        }
-        
-        // Causality violation warning
-        if (speedMismatch && speedKMH > 10f)
-        {
-            GUI.color = Color.red;
-            GUI.Label(new Rect(20, 210, 360, 40), $"⚠ CAUSALITY VIOLATION\nSpeed {speedKMH:F0} km/h but wheels show {expectedSpeedKMH:F0} km/h");
-            GUI.color = Color.white;
-        }
     }
 }
