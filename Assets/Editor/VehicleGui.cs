@@ -1,4 +1,3 @@
-using Mono.Cecil.Cil;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -69,6 +68,8 @@ namespace AtlasAuto
         ScrollView tuningPage;
         VisualElement renderPage;
 
+        Button saveAsPrefab;
+
         Dictionary<string, GameObject> carParts;
 
         TuningEditorBehaviours tuningBehaviours;
@@ -89,6 +90,7 @@ namespace AtlasAuto
 
             parts = root.Q<VisualElement>("Parts");
             partScroll = root.Q<ScrollView>("CarParts");
+            saveAsPrefab = root.Q<Button>("PrefabBtn");
 
             renderer.InitRenderer(512);
 
@@ -113,6 +115,11 @@ namespace AtlasAuto
             renderImage = root.Q<VisualElement>("PreviewVid");
             renderImage.RegisterCallback<PointerDownEvent>(evt =>
             {
+                if (evt.button == 0)
+                {
+                    renderer.Click(this);
+                    return;
+                }
                 if (evt.button != 1) return;
 
                 isRotating = true;
@@ -147,6 +154,14 @@ namespace AtlasAuto
                 renderer.Zoom(delta);
             });
 
+            saveAsPrefab.clicked += () =>
+            {
+                string path = EditorUtility.SaveFilePanelInProject("Save as Prefab", selectedModel.name, "prefab", "Message?");
+                var model = CarCompilerManager.BakeModel(selectedModel, carParts);
+                PrefabUtility.SaveAsPrefabAsset(model, path);
+                GameObject.DestroyImmediate(model);
+            };
+
 
             modelTab.style.display = DisplayStyle.Flex;
             authoringTab.style.display = DisplayStyle.None;
@@ -161,6 +176,13 @@ namespace AtlasAuto
             sideBarHolder = root.Q<VisualElement>("BtnSidebar");
             tuningPage = root.Q<ScrollView>("TuningPage");
             renderPage = root.Q<VisualElement>("PreviewPage");
+
+            root.Q<Button>("PreviewBtn").clicked += () =>
+            {
+                tuningPage.Clear();
+                tuningPage.parent.style.display = DisplayStyle.None;
+                renderPage.style.display = DisplayStyle.Flex;
+            };
         }
 
         void ready(bool showParts = false)
@@ -234,10 +256,10 @@ namespace AtlasAuto
                 ready(true);
                 carParts = new Dictionary<string, GameObject>
                 {
-                    {"Wheel_fl", wheels.WheelFL.value as GameObject},
-                    {"Wheel_fr", wheels.WheelFR.value as GameObject},
-                    {"Wheel_rl", wheels.WheelRL.value as GameObject},
-                    {"Wheel_rr", wheels.WheelRR.value as GameObject}
+                    {"wheelfl", wheels.WheelFL.value as GameObject},
+                    {"wheelfr", wheels.WheelFR.value as GameObject},
+                    {"wheelrl", wheels.WheelRL.value as GameObject},
+                    {"wheelrr", wheels.WheelRR.value as GameObject}
                 };
                 selectedModel = modelInput.value as GameObject;
             }
@@ -297,9 +319,11 @@ namespace AtlasAuto
             foreach (var f in tuningBehaviours.GetType().GetFields())
             {
                 var atr = f.GetCustomAttribute<ExportToSidebarAttribute>();
-                if (atr == null) continue;
 
-                if (atr.Name == page) return (f.FieldType, f.GetValue(tuningBehaviours));
+                Debug.Log(f.Name);
+                Debug.Log(page);
+                if (atr == null && f.Name == page) return (f.FieldType, f.GetValue(tuningBehaviours));
+                else if (atr != null && atr.Name == page) return (f.FieldType, f.GetValue(tuningBehaviours));
             }
 
             return (null, null);
@@ -338,45 +362,94 @@ namespace AtlasAuto
             Debug.Log(pageType);
             if (pageType == null) return;
 
-            Debug.Log(pageType.GetFields());
-            Debug.Log(pageParent);
-
             foreach (var f in pageType.GetFields())
             {
-                var attr = f.GetCustomAttribute<EditorRangeAttribute>();
-                var propHolder = new VisualElement();
-                propHolder.AddToClassList("editorProperty");
-                var labelHolder = new VisualElement();
-                labelHolder.AddToClassList("editorPropertyLabel");
-
-                var value = (float)f.GetValue(pageParent);
-
-                var nameLabel = new Label();
-                nameLabel.text = FormatName(f.Name);
-
-                var valueLabel = new Label();
-                valueLabel.text = value.ToString("F0");
-
-                labelHolder.Add(nameLabel);
-                labelHolder.Add(valueLabel);
-
-                var slider = new Slider();
-                slider.value = value;
-                slider.lowValue = attr.Min;
-                slider.highValue = attr.Max;
-
-                slider.RegisterValueChangedCallback(evt =>
+                var nameInEditor = f.GetCustomAttribute<NameInEditor>();
+                if (f.FieldType == typeof(int) || f.FieldType == typeof(float) || f.FieldType == typeof(double))
                 {
-                    valueLabel.text = evt.newValue.ToString("F0");
-                    f.SetValue(pageParent, evt.newValue);
-                });
+                    var attr = f.GetCustomAttribute<EditorRangeAttribute>();
+                    var propHolder = new VisualElement();
+                    propHolder.AddToClassList("editorProperty");
+                    var labelHolder = new VisualElement();
+                    labelHolder.AddToClassList("editorPropertyLabel");
 
-                propHolder.Add(labelHolder);
-                propHolder.Add(slider);
+                    var value = (float)f.GetValue(pageParent);
 
-                propHolder.style.overflow = Overflow.Hidden;
+                    var nameLabel = new Label();
+                    if (nameInEditor != null)
+                        nameLabel.text = nameInEditor.Name;
+                    else
+                        nameLabel.text = FormatName(f.Name);
 
-                tuningPage.Add(propHolder);
+                    var valueLabel = new Label();
+                    valueLabel.text = value.ToString("F0");
+
+                    labelHolder.Add(nameLabel);
+                    labelHolder.Add(valueLabel);
+
+                    var slider = new Slider();
+                    slider.lowValue = attr.Min;
+                    slider.highValue = attr.Max;
+                    if (value < attr.Min)
+                        slider.value = attr.Min;
+                    else
+                        slider.value = value;
+
+                    valueLabel.text = slider.value.ToString("F0");
+
+                    slider.RegisterValueChangedCallback(evt =>
+                    {
+                        valueLabel.text = evt.newValue.ToString("F0");
+                        f.SetValue(pageParent, evt.newValue);
+                    });
+
+                    propHolder.Add(labelHolder);
+                    propHolder.Add(slider);
+
+                    propHolder.style.overflow = Overflow.Hidden;
+
+                    tuningPage.Add(propHolder);
+                }
+
+                else if (f.FieldType == typeof(bool))
+                {
+                    var toggle = new Toggle();
+                    if (nameInEditor != null)
+                        toggle.label = nameInEditor.Name;
+                    else
+                        toggle.label = FormatName(f.Name);
+
+                    toggle.value = (bool)f.GetValue(pageParent);
+
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        f.SetValue(pageParent, evt.newValue);
+                    });
+
+                    tuningPage.Add(toggle);
+
+                }
+
+                else if (f.FieldType.IsEnum)
+                {
+                    var dropdown = new DropdownField();
+                    var choices = System.Enum.GetNames(f.FieldType).ToList();
+                    if (nameInEditor != null)
+                        dropdown.label = nameInEditor.Name;
+                    else
+                        dropdown.label = FormatName(f.Name);
+
+
+                    dropdown.RegisterValueChangedCallback(evt =>
+                    {
+                        f.SetValue(pageParent, System.Enum.GetValues(f.FieldType).GetValue(dropdown.index));
+                    });
+
+                    dropdown.choices = choices;
+                    dropdown.index = System.Array.IndexOf(System.Enum.GetValues(f.FieldType), f.GetValue(pageParent));
+
+                    tuningPage.Add(dropdown);
+                }
             }
         }
 
@@ -397,6 +470,26 @@ namespace AtlasAuto
             btn.text = name;
             btn.clicked += () => RenderEditorPage(name);
             holder.Add(btn);
+        }
+
+        public void GoToWheel(string w)
+        {
+            if (w.Contains("fl"))
+            {
+                RenderEditorPage("wheelFl");
+            }
+            else if (w.Contains("fr"))
+            {
+                RenderEditorPage("wheelFr");
+            }
+            else if (w.Contains("rl"))
+            {
+                RenderEditorPage("wheelRl");
+            }
+            else if (w.Contains("rr"))
+            {
+                RenderEditorPage("wheelRr");
+            }
         }
     }
 }
