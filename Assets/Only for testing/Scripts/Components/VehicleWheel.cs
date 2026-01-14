@@ -73,7 +73,7 @@ public class VehicleWheel : MonoBehaviour
         // Calculate RPM from Speed: RPM = (Speed / Circumference) * 60
         // Spin Speed (Deg/Sec) = RPM * 6
         float circumference = 2f * Mathf.PI * wheelRadius;
-        float arcadeRPM = (driveSpeedMS * 60f) / circumference;
+        float arcadeRPM = (driveSpeedMS * 30f) / circumference;
         
         // "Slower" visual style (0.1f multiplier)
         float spinDegreesPerSec = arcadeRPM * 6f * 0.1f; 
