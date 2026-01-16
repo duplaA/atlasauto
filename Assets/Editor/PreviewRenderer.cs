@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 using System.Linq;
 using Unity.VisualScripting;
 using TMPro;
+using AtlasAuto.Compiler;
 
 namespace AtlasAuto
 {
@@ -242,8 +243,7 @@ namespace AtlasAuto
 
         public void Click(VehicleGui g)
         {
-            Debug.Log(currentHovered.name);
-            g.GoToWheel(currentHovered.name);
+            g.GoToWheel(CarCompilerManager.DumbDownText(currentHovered.name));
         }
 
         public void CheckForHover(Vector2 pos)

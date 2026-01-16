@@ -157,7 +157,8 @@ namespace AtlasAuto
             saveAsPrefab.clicked += () =>
             {
                 string path = EditorUtility.SaveFilePanelInProject("Save as Prefab", selectedModel.name, "prefab", "Message?");
-                var model = CarCompilerManager.BakeModel(selectedModel, carParts);
+                var model = CarCompilerManager.BakeModel(selectedModel, ref carParts);
+                CarCompilerManager.ApplySettings(model, tuningBehaviours, carParts);
                 PrefabUtility.SaveAsPrefabAsset(model, path);
                 GameObject.DestroyImmediate(model);
             };
@@ -320,8 +321,6 @@ namespace AtlasAuto
             {
                 var atr = f.GetCustomAttribute<ExportToSidebarAttribute>();
 
-                Debug.Log(f.Name);
-                Debug.Log(page);
                 if (atr == null && f.Name == page) return (f.FieldType, f.GetValue(tuningBehaviours));
                 else if (atr != null && atr.Name == page) return (f.FieldType, f.GetValue(tuningBehaviours));
             }
@@ -359,7 +358,6 @@ namespace AtlasAuto
             tuningPage.parent.style.display = DisplayStyle.Flex;
             renderPage.style.display = DisplayStyle.None;
             var (pageType, pageParent) = LoadPage(pageName);
-            Debug.Log(pageType);
             if (pageType == null) return;
 
             foreach (var f in pageType.GetFields())
@@ -474,21 +472,9 @@ namespace AtlasAuto
 
         public void GoToWheel(string w)
         {
-            if (w.Contains("fl"))
+            foreach (var part in CarCompilerManager.NECESSARY_PARTS)
             {
-                RenderEditorPage("wheelFl");
-            }
-            else if (w.Contains("fr"))
-            {
-                RenderEditorPage("wheelFr");
-            }
-            else if (w.Contains("rl"))
-            {
-                RenderEditorPage("wheelRl");
-            }
-            else if (w.Contains("rr"))
-            {
-                RenderEditorPage("wheelRr");
+                if (w.Contains(part)) RenderEditorPage(part);
             }
         }
     }

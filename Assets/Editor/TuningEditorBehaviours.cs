@@ -80,16 +80,16 @@ namespace AtlasAuto.Editor
 
             [EditorRange(0.5f, 5f)] public float corneringStiffness = 2.5f;
             [EditorRange(0f, 10f)] public float downforceFactor = 3f;
-            
+
             [NameInEditor("Weight Transfer")]
             [EditorRange(0f, 1f)] public float weightTransferFactor = 0.4f;
-            
+
             [NameInEditor("Load Sensitivity")]
             [EditorRange(0f, 2f)] public float loadSensitivity = 0.8f;
-            
+
             [NameInEditor("Counter-Steer Assist")]
             [EditorRange(0f, 1f)] public float counterSteerAssist = 0.3f;
-            
+
             [NameInEditor("Traction Control")]
             [EditorRange(0f, 1f)] public float tractionControl = 0.2f;
         }
@@ -100,13 +100,13 @@ namespace AtlasAuto.Editor
         public class SteeringSettings
         {
             [EditorRange(5f, 60f)] public float maxSteerAngle = 35f;
-            
+
             [NameInEditor("Steering Response")]
             [EditorRange(0.5f, 3f)] public float steeringResponse = 1.5f;
-            
+
             [NameInEditor("Return Speed")]
             [EditorRange(1f, 15f)] public float steeringReturnSpeed = 8f;
-            
+
             public bool speedSensitiveSteering = true;
         }
 
@@ -179,10 +179,10 @@ namespace AtlasAuto.Editor
         // Debug settings are internal, not exported to sidebar
         public DebugSettings debug;
 
-        public Wheel wheelFl;
-        public Wheel wheelFr;
-        public Wheel wheelRl;
-        public Wheel wheelRr;
+        public Wheel wheelfl;
+        public Wheel wheelfr;
+        public Wheel wheelrl;
+        public Wheel wheelrr;
 
         public TuningEditorBehaviours()
         {

@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using AtlasAuto.Editor;
 using System;
+using System.Text.RegularExpressions;
 
 
 #if UNITY_EDITOR
@@ -11,7 +12,15 @@ namespace AtlasAuto.Compiler
 {
     public static class CarCompilerManager
     {
-        static string[] NECESSARY_PARTS = { "wheelfl", "wheelfr", "wheelrl", "wheelrr" };
+        public static string[] NECESSARY_PARTS = { "wheelfl", "wheelfr", "wheelrl", "wheelrr" };
+
+        public static string DumbDownText(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            return Regex.Replace(input, "[^a-zA-Z]", "").ToLower();
+        }
         public static bool CheckIntegrity(GameObject obj, out int reason, out Dictionary<string, GameObject> parts)
         {
 
@@ -22,7 +31,9 @@ namespace AtlasAuto.Compiler
                 var child = transform.GetChild(i);
                 var childObj = child.gameObject;
 
-                if (NECESSARY_PARTS.Contains(child.name.Replace("_", "").ToLower())) carParts.Add(child.name.Replace("_", "").ToLower(), childObj);
+                var dumbName = DumbDownText(child.name);
+
+                if (NECESSARY_PARTS.Contains(dumbName)) carParts.Add(dumbName, childObj);
             }
 
             parts = carParts;
@@ -99,7 +110,7 @@ namespace AtlasAuto.Compiler
             return Mathf.Max(e.x, e.y);
         }
 
-        public static GameObject BakeModel(GameObject baseModel, Dictionary<string, GameObject> parts)
+        public static GameObject BakeModel(GameObject baseModel, ref Dictionary<string, GameObject> parts)
         {
             Dictionary<GameObject, Bounds> wheelBounds = new();
             foreach (var key in parts.Keys)
@@ -148,6 +159,7 @@ namespace AtlasAuto.Compiler
             AntiRollBar antiRollBarFront = temporaryInstace.AddComponent<AntiRollBar>();
             AntiRollBar antiRollBarRear = temporaryInstace.AddComponent<AntiRollBar>();
 
+            var partsToAdd = new Dictionary<string, GameObject>();
             foreach (var part in parts)
             {
                 var name = part.Key;
@@ -159,6 +171,7 @@ namespace AtlasAuto.Compiler
 
                     GameObject wheel = new GameObject();
                     wheel.name = name + "_coll";
+                    partsToAdd[wheel.name] = wheel;
                     var wheelColl = wheel.AddComponent<WheelCollider>();
                     wheelColl.center = wheel.transform.TransformPoint(b.center);
                     wheelColl.radius = ComputeWheelRadiusFromLocalBounds(b);
@@ -189,10 +202,12 @@ namespace AtlasAuto.Compiler
                 }
             }
 
+            parts = parts.Concat(partsToAdd).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
             return temporaryInstace;
         }
 
-        public static void ApplySettings(GameObject carRoot, TuningEditorBehaviours t)
+        public static void ApplySettings(GameObject carRoot, TuningEditorBehaviours t, Dictionary<string, GameObject> parts)
         {
             if (carRoot == null || t == null)
             {
@@ -235,8 +250,6 @@ namespace AtlasAuto.Compiler
                 engine.evBaseRPM = t.engine.evBaseRPM;
                 engine.frictionTorque = t.engine.frictionTorque;
                 engine.brakingTorque = t.engine.brakingTorque;
-
-                engine.SendMessage("OnValidate", SendMessageOptions.DontRequireReceiver);
             }
 
             // =========================
@@ -335,32 +348,28 @@ namespace AtlasAuto.Compiler
             // =========================
             // WHEELS (explicit mapping)
             // =========================
-            ApplyWheel(t.wheelFl, wheels, true, true);
-            ApplyWheel(t.wheelFr, wheels, true, false);
-            ApplyWheel(t.wheelRl, wheels, false, true);
-            ApplyWheel(t.wheelRr, wheels, false, false);
+            ApplyWheel(t.wheelfl, parts, true, true);
+            ApplyWheel(t.wheelfr, parts, true, false);
+            ApplyWheel(t.wheelrl, parts, false, true);
+            ApplyWheel(t.wheelrr, parts, false, false);
 
             // =========================
             // FINAL SYNC
             // =========================
-            controller.SendMessage("OnValidate", SendMessageOptions.DontRequireReceiver);
 
             Debug.Log("[Tuning] All settings applied successfully");
         }
 
         static void ApplyWheel(
             TuningEditorBehaviours.Wheel src,
-            VehicleWheel[] wheels,
+            Dictionary<string, GameObject> parts,
             bool front,
             bool left
         )
         {
-            if (src == null || wheels == null) return;
+            if (src == null || parts == null) return;
 
-            var w = wheels.FirstOrDefault(x =>
-                x.isFront == front &&
-                (left ? x.transform.localPosition.x < 0f
-                      : x.transform.localPosition.x > 0f));
+            var w = parts["wheel" + (front ? "f" : "r") + (left ? "l" : "r") + "_coll"].GetComponent<VehicleWheel>();
 
             if (w == null) return;
 
