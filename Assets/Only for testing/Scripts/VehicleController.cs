@@ -25,16 +25,30 @@ public class VehicleController : MonoBehaviour
 
     [Header("Handling")]
     public float vehicleMass = 1500f;
-    public Vector3 centerOfMassOffset = new Vector3(0, -1.5f, 0.1f); 
+    public Vector3 centerOfMassOffset = new Vector3(0, -0.5f, 0.1f); 
     public float maxBrakeTorque = 5000f; 
-    [Range(0f, 1f)] public float frontBrakeBias = 0.7f;
-    [Tooltip("Multiplier for sideways friction. Higher = more grip in corners.")]
-    public float corneringStiffness = 3.0f; 
-    [Tooltip("Artificial gravity to keep car glued to road. Multiplies by speed.")]
-    public float downforceFactor = 5.0f;
+    [Range(0f, 1f)] public float frontBrakeBias = 0.65f;
+    [Tooltip("Base grip multiplier. Higher = more grip in corners.")]
+    public float corneringStiffness = 2.5f; 
+    [Tooltip("Downforce at high speed (N per km/h squared)")]
+    public float downforceFactor = 3.0f;
+    
+    [Header("Dynamic Handling")]
+    [Tooltip("How much weight transfers under acceleration/braking (0-1)")]
+    [Range(0f, 1f)] public float weightTransferFactor = 0.4f;
+    [Tooltip("How much grip increases with downforce (0-2)")]
+    [Range(0f, 2f)] public float loadSensitivity = 0.8f;
+    [Tooltip("Assists counter-steering when sliding (0-1)")]
+    [Range(0f, 1f)] public float counterSteerAssist = 0.3f;
+    [Tooltip("Limits wheelspin under acceleration (0=off, 1=full)")]
+    [Range(0f, 1f)] public float tractionControl = 0.2f;
     
     [Header("Steering")]
-    public float maxSteerAngle = 40f; 
+    public float maxSteerAngle = 35f;
+    [Tooltip("Steering response curve (lower = more progressive)")]
+    [Range(0.5f, 3f)] public float steeringResponse = 1.5f;
+    [Tooltip("How fast steering returns to center")]
+    public float steeringReturnSpeed = 8f;
     public bool speedSensitiveSteering = true;
 
     [Header("Debug")]
@@ -49,6 +63,13 @@ public class VehicleController : MonoBehaviour
     public float slipRatio;         
     public float debugWheelRadius;  
     private bool isBraking;
+    
+    // Dynamic handling state
+    private float currentSteerAngle = 0f;
+    private float frontGripMultiplier = 1f;
+    private float rearGripMultiplier = 1f;
+    private Vector3 lastVelocity;
+    private float lateralSlip = 0f;
     
     // Private
     private Vector2 moveInput;
@@ -242,6 +263,30 @@ public class VehicleController : MonoBehaviour
         moveInput = value.Get<Vector2>();
     }
 
+    public void OnShiftUp(InputValue value)
+    {
+        if (transmission == null) return;
+        if (transmission.mode != VehicleTransmission.TransmissionMode.Manual) return;
+        if (transmission.isElectric) return; // EVs don't shift
+        
+        int nextGear = transmission.currentGear + 1;
+        if (nextGear > transmission.gearRatios.Length) return; // Already at top gear
+        
+        transmission.ShiftTo(nextGear);
+    }
+
+    public void OnShiftDown(InputValue value)
+    {
+        if (transmission == null) return;
+        if (transmission.mode != VehicleTransmission.TransmissionMode.Manual) return;
+        if (transmission.isElectric) return; // EVs don't shift
+        
+        int nextGear = transmission.currentGear - 1;
+        if (nextGear < -1) return; // Already at reverse
+        
+        transmission.ShiftTo(nextGear);
+    }
+
     void LateUpdate()
     {
         Vector2 input = EffectiveInput;
@@ -368,10 +413,36 @@ public class VehicleController : MonoBehaviour
 
         transmission.UpdateGearLogic(engine.currentRPM, engine.maxRPM, inputThrottle, dt);
 
-        if (isGroundedAny())
+        // Calculate acceleration for weight transfer
+        Vector3 acceleration = (rb.linearVelocity - lastVelocity) / Mathf.Max(dt, 0.001f);
+        lastVelocity = rb.linearVelocity;
+        float longitudinalAccel = Vector3.Dot(acceleration, transform.forward);
+        
+        // Weight Transfer: shifts grip between front and rear
+        // Positive accel = weight to rear, negative (braking) = weight to front
+        float normalizedAccel = Mathf.Clamp(longitudinalAccel / 15f, -1f, 1f); // ~15 m/s² max
+        float weightShift = normalizedAccel * weightTransferFactor;
+        
+        // Front loses grip under acceleration, gains under braking
+        frontGripMultiplier = Mathf.Lerp(frontGripMultiplier, 1f - weightShift, dt * 8f);
+        // Rear gains grip under acceleration, loses under braking  
+        rearGripMultiplier = Mathf.Lerp(rearGripMultiplier, 1f + weightShift, dt * 8f);
+        
+        // Calculate lateral slip for counter-steer and drift detection
+        Vector3 localVel = transform.InverseTransformDirection(rb.linearVelocity);
+        lateralSlip = Mathf.Abs(localVel.x) / Mathf.Max(speedMS, 1f);
+        
+        // Downforce: scales with speed squared (realistic aerodynamics)
+        if (isGroundedAny() && speedKMH > 20f)
         {
-            float downforce = downforceFactor * vehicleMass * (speedKMH / 100f); 
+            float speedSquared = (speedKMH / 100f) * (speedKMH / 100f);
+            float downforce = downforceFactor * vehicleMass * speedSquared;
             rb.AddForce(-transform.up * downforce, ForceMode.Force);
+            
+            // Downforce also increases grip via load sensitivity
+            float loadBonus = 1f + (speedSquared * loadSensitivity * 0.3f);
+            frontGripMultiplier *= loadBonus;
+            rearGripMultiplier *= loadBonus;
         }
         
         float drivenWheelRPM = GetAverageDrivenRPM();
@@ -400,14 +471,17 @@ public class VehicleController : MonoBehaviour
         {
             // FREE REVVING (Neutral or Clutch Out)
             float freeTorque = engine.CalculateTorque(engine.currentRPM, inputThrottle);
-            float alpha = freeTorque / Mathf.Max(engine.inertia, 0.1f);
+            // Lower inertia for free revving to make it snappy
+            float effectiveInertia = Mathf.Max(engine.inertia * 0.3f, 0.05f); 
+            float alpha = freeTorque / effectiveInertia;
             engine.currentRPM += alpha * dt;
             
             // Decay to idle if no throttle
             if (inputThrottle < 0.05f)
             {
                 float targetIdle = isElectricVehicle ? 0f : engine.idleRPM;
-                engine.currentRPM = Mathf.Lerp(engine.currentRPM, targetIdle, 3f * dt);
+                // Faster return to idle
+                engine.currentRPM = Mathf.Lerp(engine.currentRPM, targetIdle, 5f * dt);
             }
         }
         
@@ -425,25 +499,32 @@ public class VehicleController : MonoBehaviour
         driveTorque = transmission.GetDriveTorque(engineTorque);
 
 
-        // D. Power Limiting (Critical!)
-        // WheelForce = min(Torque/Radius, Power/Speed)
+        // D. Power Limiting
+        // At low speeds, use torque. At high speeds, limit by power.
         float targetPhysicsRadius = physicsWheelRadius > 0.01f ? physicsWheelRadius : 0.34f;
         
         // Calculate scale multiplier: Actual / Target
         float actualRadius = (wheels.Length > 0 && wheels[0].wheelCollider != null) ? wheels[0].wheelCollider.radius : 0.34f;
         float scaleMultiplier = actualRadius / targetPhysicsRadius;
         
-        float torqueBasedMaxForce = driveTorque / targetPhysicsRadius;
+        float torqueBasedForce = driveTorque / targetPhysicsRadius;
         
-        // Power Limit: F = P / v
-        float powerLimitedMaxForce = (engine.maxPowerKW * 1000f) / Mathf.Max(speedMS, 1f);
-        
-        // The FINAL force we are allowed to apply
-        float effectiveForce = Mathf.Min(torqueBasedMaxForce, powerLimitedMaxForce);
+        // Power Limit: F = P / v (only matters at higher speeds)
+        // At low speeds, torque is king. At high speeds, power limits acceleration.
+        float effectiveForce;
+        if (speedMS < 5f)
+        {
+            // Below 5 m/s (~18 km/h): Pure torque-based acceleration
+            effectiveForce = torqueBasedForce;
+        }
+        else
+        {
+            // Above 5 m/s: Apply power limit
+            float powerLimitedForce = (engine.maxPowerKW * 1000f) / speedMS;
+            effectiveForce = Mathf.Min(torqueBasedForce, powerLimitedForce);
+        }
         
         // Convert back to Torque for WheelCollider
-        // We want effectiveForce at the contact point.
-        // Torque needed = Force * ActualRadius (because Unity uses ActualRadius)
         float finalWheelTorque = effectiveForce * actualRadius; 
 
         int driveCount = GetMotorWheelCount();
@@ -469,39 +550,92 @@ public class VehicleController : MonoBehaviour
             torquePerWheel = (finalWheelTorque / driveCount) * topSpeedMultiplier;
         }
 
-        // Apply to wheels
-        float steerAngle = CalculateSteerAngle(input.x);
+        // Apply to wheels with STABILIZED dynamic handling
+        float targetSteerAngle = CalculateSteerAngle(input.x);
+        
+        // 1. Smooth Steering (Low Pass Filter)
+        // More smoothing at high speeds to prevent twitchiness
+        float steerSmoothness = Mathf.Lerp(15f, 5f, speedKMH / 100f); 
+        currentSteerAngle = Mathf.Lerp(currentSteerAngle, targetSteerAngle, steerSmoothness * dt);
+        
+        // 2. Stable Counter-Steer Assist
+        // Only apply if significant slip is detected and we are moving fast enough
+        // Deadzone included to prevent micro-corrections (wiggling)
+        if (counterSteerAssist > 0f && speedKMH > 30f)
+        {
+            Vector3 assistLocalVel = transform.InverseTransformDirection(rb.linearVelocity);
+            float rawSlip = assistLocalVel.x / Mathf.Max(speedMS, 1.0f); // Normalized slip
+            
+            // Hysteresis/Deadzone
+            if (Mathf.Abs(rawSlip) > 0.15f) 
+            {
+                float slideDirection = Mathf.Sign(rawSlip);
+                // Dampened assist
+                float assistAngle = slideDirection * (Mathf.Abs(rawSlip) - 0.15f) * maxSteerAngle * counterSteerAssist;
+                // Clamp assist to avoid overriding user input completely
+                assistAngle = Mathf.Clamp(assistAngle, -15f, 15f); 
+                currentSteerAngle += assistAngle;
+            }
+        }
 
         float totalSlip = 0f;
         int slipCount = 0;
         
+        // Grip Multiplier Clamping (Safety)
+        // Prevent multipliers from going too wild which causes physics explosions
+        frontGripMultiplier = Mathf.Clamp(frontGripMultiplier, 0.6f, 1.4f);
+        rearGripMultiplier = Mathf.Clamp(rearGripMultiplier, 0.6f, 1.4f);
+
         foreach (var w in wheels)
         {
             if (w.wheelCollider == null) continue;
+            
+            // Apply dynamic grip based on weight transfer
+            float gripMultiplier = w.isFront ? frontGripMultiplier : rearGripMultiplier;
+            
+            // Soft update of friction to prevent physics snapping
             WheelFrictionCurve sideFriction = w.wheelCollider.sidewaysFriction;
-            sideFriction.stiffness = corneringStiffness;
+            sideFriction.stiffness = Mathf.Lerp(sideFriction.stiffness, corneringStiffness * gripMultiplier, dt * 10f); // Interpolate changes!
             w.wheelCollider.sidewaysFriction = sideFriction;
+            
+            WheelFrictionCurve forwardFriction = w.wheelCollider.forwardFriction;
+            forwardFriction.stiffness = Mathf.Lerp(forwardFriction.stiffness, 1.5f * gripMultiplier, dt * 10f);
+            w.wheelCollider.forwardFriction = forwardFriction;
             
             if (w.isSteer)
             {
-                w.wheelCollider.steerAngle = steerAngle;
+                w.wheelCollider.steerAngle = currentSteerAngle;
             }
             
             // Get wheel contact info
             WheelHit hit;
             bool isGrounded = w.wheelCollider.GetGroundHit(out hit);
             
+            // Apply motor torque with SAFE traction control
             if (w.isMotor && !isBraking)
             {
-                w.wheelCollider.motorTorque = torquePerWheel;
+                float appliedTorque = torquePerWheel;
+                
+                // Traction control: Smooth intervention
+                if (tractionControl > 0f && isGrounded)
+                {
+                    float wheelSlipRatio = Mathf.Abs(hit.forwardSlip);
+                    // Higher threshold for intervention to prevent cutting power too early
+                    if (wheelSlipRatio > 0.25f) 
+                    {
+                        float tcReduction = Mathf.Clamp01((wheelSlipRatio - 0.25f) / 0.5f);
+                        appliedTorque *= 1f - (tcReduction * tractionControl);
+                    }
+                }
+                
+                w.wheelCollider.motorTorque = appliedTorque;
             }
             else
             {
                 w.wheelCollider.motorTorque = 0f;
             }
             
-            // If we are strictly waiting for release, we are braking
-            // If no input and stopped, we apply PARK BRAKE
+            // Braking logic
             if (isBraking)
             {
                 float brakeTorque;
@@ -514,8 +648,7 @@ public class VehicleController : MonoBehaviour
             }
             else if (Mathf.Abs(input.y) < 0.1f && speedKMH < 2f && !isInputReleaseRequired)
             {
-                // Auto-Park: Aggressive hold
-                // Also kill RB angular velocity to stop
+                // Auto-Park
                 w.wheelCollider.brakeTorque = maxBrakeTorque * scaleMultiplier; 
                 rb.angularDamping = 2.0f; 
             }

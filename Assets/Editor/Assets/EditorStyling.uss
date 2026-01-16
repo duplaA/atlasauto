@@ -1,16 +1,262 @@
+/* Modern Dark Theme - Zinc/Slate (Inspired by DriverHUD.uss) */
+:root {
+    --bg-primary: #09090b;
+    --bg-secondary: #18181b;
+    --bg-tertiary: #27272a;
+    --bg-hover: #343438;
+    
+    --accent-blue: #3b82f6;
+    --accent-green: #22c55e;
+    --accent-red: #ef4444;
+    --accent-muted: #71717a;
+    
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1a0;
+    --text-muted: #52525b;
+    
+    --border-color: #27272a;
+    --radius: 8px;
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Global Reset & Base */
+VisualElement {
+    color: var(--text-primary);
+    font-size: 13px;
+    -unity-font-style: normal;
+}
+
+/* Typography */
+Label {
+    color: var(--text-primary);
+    -unity-text-align: middle-left;
+}
+
+/* Sidebar Styling */
+#Sidebar {
+    background-color: var(--bg-primary);
+    border-right-width: 1px;
+    border-color: var(--border-color);
+    padding: 12px;
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+#Sidebar Button {
+    background-color: transparent;
+    border-width: 0;
+    color: var(--text-secondary);
+    -unity-text-align: middle-left;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    margin-left: 0;
+    margin-right: 0;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 12px;
+    flex-shrink: 0;
+    width: auto;
+}
+
+#Sidebar Button:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+#Sidebar .sidebar-logo {
+    height: 80px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+#Sidebar > Label {
+    color: var(--text-muted);
+    -unity-font-style: bold;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    padding-left: 12px;
+    padding-right: 0;
+    font-size: 10px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    width: auto;
+}
+
+/* Button container for dynamic tuning buttons */
+#BtnSidebar {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* Main Content Area */
+#Content {
+    background-color: var(--bg-secondary);
+    padding: 24px;
+}
+
+/* Inputs & Fields */
+.unity-base-field {
+    margin-bottom: 14px;
+}
+
+.unity-base-field__label {
+    min-width: 130px;
+    color: var(--text-secondary);
+    -unity-font-style: normal;
+    font-size: 13px;
+    margin-right: 12px;
+}
+
+.unity-base-field__input {
+    background-color: var(--bg-primary);
+    border-width: 1px;
+    border-color: var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+}
+
+.unity-base-field__input:hover {
+    border-color: var(--accent-muted);
+}
+
+.unity-base-field__input:focus {
+    border-color: var(--accent-blue);
+}
+
+/* Buttons (General) */
+Button {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 8px 16px;
+    border-width: 1px;
+    border-color: var(--border-color);
+    -unity-font-style: bold;
+    transition: background-color 0.2s;
+}
+
+Button:hover {
+    background-color: var(--bg-hover);
+}
+
+Button:active {
+    background-color: #3f3f46;
+}
+
+Button:disabled {
+    opacity: 0.5;
+    background-color: var(--bg-primary);
+}
+
+/* Tuning Page Properties */
 .editorProperty {
-    margin-top: 0%;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 12px;
+    background-color: var(--bg-primary);
+    border-width: 1px;
+    border-color: var(--border-color);
+    border-radius: 8px;
+    padding: 10px 16px;
 }
 
 .editorPropertyLabel {
     flex-direction: row;
     justify-content: space-between;
-    padding-right: 3%;
-    padding-left: 3%;
-    background-color: rgb(0, 31, 255);
+    width: 180px;
+    margin-right: 20px;
+    align-items: center;
+}
+
+.editorPropertyLabel Label {
+    color: var(--text-primary);
+    -unity-font-style: bold;
+}
+
+Slider {
+    flex-grow: 1;
 }
 
 #TuningPage {
-    justify-content: space-evenly;
+    padding-right: 4px;
+}
+
+/* ScrollView */
+.unity-scroller--vertical {
+    border-width: 0;
+    width: 12px;
+}
+
+.unity-scroller__slider {
+    width: 6px;
+    margin: 0 3px;
+    min-height: 20px; 
+    background-color: var(--bg-tertiary);
+}
+
+/* Wheel Popup */
+.wheel-popup {
+    position: absolute;
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    width: 240px;
+    border-width: 1px;
+    border-color: var(--border-color);
+    border-color: var(--border-color);
+}
+
+.wheel-popup-header {
+    -unity-font-style: bold;
+    font-size: 15px;
+    margin-bottom: 16px;
+    color: var(--accent-blue);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border-color);
+    padding-bottom: 10px;
+    -unity-text-align: middle-center;
+}
+
+.wheel-popup Toggle {
+    margin-bottom: 10px;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+}
+
+.wheel-popup Toggle Label {
+    flex-grow: 1;
+    color: var(--text-secondary);
+}
+
+/* Footer */
+#Footer {
+    border-top-width: 1px;
+    border-color: var(--border-color);
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-primary);
+}
+
+#Footer Label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* Preview Area */
+#PreviewVid {
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: var(--border-color);
     overflow: hidden;
+    margin: 0;
+    background-color: #000;
 }

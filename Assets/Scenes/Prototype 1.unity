@@ -7345,13 +7345,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 822505613}
-  distance: 10
+  baseDistance: 6
   minDistance: 20
   maxDistance: 60
+  lookAtHeight: 1
   sensitivityX: 5
   sensitivityY: 5
-  minVerticalAngle: -30
+  minVerticalAngle: -20
   maxVerticalAngle: 60
+  speedDistanceAdd: 4
+  baseFOV: 60
+  maxFOV: 85
+  effectMaxSpeed: 200
+  followSmoothness: 10
+  accelerationPitch: 3
+  brakingPitch: 5
+  enableShake: 1
+  maxShakeIntensity: 0.15
+  shakeFrequency: 25
 --- !u!1 &538831594 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -5493567880199346744, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -8632,8 +8643,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hud: {fileID: 646085441}
-  turboEnabled: 0
-  selectedMode: 0
+  speedControlActive: 0
+  steeringTarget: 0
 --- !u!1 &647635760 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -3836988071054768303, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -13237,7 +13248,7 @@ MonoBehaviour:
   horsepowerHP: 660
   maxPowerKW: 492.162
   peakTorqueNm: 493
-  maxRPM: 8000
+  maxRPM: 7800
   inertia: 0.09
   peakTorqueRPM: 18000
   peakPowerRPM: 5400
@@ -13263,7 +13274,7 @@ MonoBehaviour:
   transmission: {fileID: 0}
   isElectricVehicle: 0
   drivetrain: 2
-  topSpeedKMH: 250
+  topSpeedKMH: 300
   physicsWheelRadius: 0.24
   vehicleMass: 1997
   centerOfMassOffset: {x: 0, y: -0.4, z: 0.1}
@@ -13271,7 +13282,13 @@ MonoBehaviour:
   frontBrakeBias: 0.7
   corneringStiffness: 2
   downforceFactor: 5
+  weightTransferFactor: 0.4
+  loadSensitivity: 0.8
+  counterSteerAssist: 0.3
+  tractionControl: 0.2
   maxSteerAngle: 35
+  steeringResponse: 1.5
+  steeringReturnSpeed: 8
   speedSensitiveSteering: 1
   speedKMH: 0
   speedMS: 0
@@ -13394,6 +13411,35 @@ MonoBehaviour:
   wheelL: {fileID: 101398381}
   wheelR: {fileID: 2124217709}
   antiRollForce: 8000
+--- !u!114 &822505618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 822505605}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 198c97f0c00c8bb4fa05937e5bb60226, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mode: 0
+  isElectric: 0
+  gearRatios:
+  - 3.5
+  - 2.2
+  - 1.5
+  - 1.1
+  - 0.9
+  - 0.75
+  reverseRatio: 3.2
+  finalDriveRatio: 3.7
+  electricFixedRatio: 8.5
+  upshiftRPM: 0.85
+  downshiftRPM: 0.4
+  shiftDuration: 0.3
+  currentGear: 0
+  clutchEngagement: 1
 --- !u!1 &822889092 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3454074623951443645, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -17300,7 +17346,13 @@ MonoBehaviour:
   frontBrakeBias: 0.7
   corneringStiffness: 2
   downforceFactor: 5
+  weightTransferFactor: 0.4
+  loadSensitivity: 0.8
+  counterSteerAssist: 0.3
+  tractionControl: 0.2
   maxSteerAngle: 35
+  steeringResponse: 1.5
+  steeringReturnSpeed: 8
   speedSensitiveSteering: 1
   speedKMH: 0
   speedMS: 0
@@ -27427,6 +27479,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
       insertIndex: -1
       addedObject: {fileID: 822505614}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 822505618}
     - targetCorrespondingSourceObject: {fileID: 8821294456061963822, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
       insertIndex: -1
       addedObject: {fileID: 941591636}

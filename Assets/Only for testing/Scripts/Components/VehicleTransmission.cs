@@ -83,9 +83,13 @@ public class VehicleTransmission : MonoBehaviour
 
         // ICE LOGIC
         // Handle shift timer
+        // ICE LOGIC
+        // Always decrement timer for cooldown/hysteresis
+        shiftTimer -= dt;
+
+        // Handle shift phase
         if (isShifting)
         {
-            shiftTimer -= dt;
             clutchEngagement = 0f; // Clutch disengaged during shift
             if (shiftTimer <= 0f)
             {
@@ -98,6 +102,9 @@ public class VehicleTransmission : MonoBehaviour
 
         if (mode == TransmissionMode.Automatic)
         {
+            // HYSTERESIS: Don't check for new shifts if we just shifted
+            if (shiftTimer > -0.5f) return; // 0.5s cooldown after shift completes
+            
             float rpmPercent = engineRPM / maxRPM;
 
             // Upshift
@@ -105,10 +112,39 @@ public class VehicleTransmission : MonoBehaviour
             {
                 ShiftTo(currentGear + 1);
             }
-            // Downshift
-            else if (currentGear > 1 && rpmPercent < downshiftRPM && throttle < 0.5f)
+            // Downshift Logic
+            else if (currentGear > 1)
             {
-                ShiftTo(currentGear - 1);
+                bool shouldDownshift = false;
+                
+                // RPM PREDICTION: Calculate RPM in the lower gear to prevent "Shift Hunting"
+                // NewRPM = OldRPM * (LowerRatio / CurrentRatio)
+                float currentRatio = GetRatioForGear(currentGear);
+                float lowerRatio = GetRatioForGear(currentGear - 1);
+                float ratioMultiplier = lowerRatio / currentRatio;
+                float predictedRPM = rpmPercent * ratioMultiplier;
+                
+                // Only allow downshift if the RESULTING rpm is safe (below upshift threshold)
+                // We leave a 5% buffer to be safe
+                if (predictedRPM < (upshiftRPM - 0.05f)) 
+                {
+                    // 1. Kickdown: High throttle
+                    if (throttle > 0.9f && rpmPercent < 0.7f) 
+                        shouldDownshift = true;
+                    
+                    // 2. Power Demand: Moderate throttle
+                    else if (throttle > 0.5f && rpmPercent < 0.5f) 
+                        shouldDownshift = true;
+                        
+                    // 3. Cruising: Anti-lug
+                    else if (rpmPercent < downshiftRPM) 
+                        shouldDownshift = true;
+                }
+
+                if (shouldDownshift)
+                {
+                    ShiftTo(currentGear - 1);
+                }
             }
         }
     }

@@ -122,6 +122,31 @@ public class HUDExtensionExample : MonoBehaviour
                 UpdateOverrideState();
             }
         });
+
+        // Transmission Mode Toggle (Standard Button)
+        hud.RegisterButton(new HUDButtonConfig
+        {
+            Id = "trans_mode",
+            Label = "Mode",
+            Icon = "M",
+            Type = HUDButtonType.Normal,
+            OnClick = () => {
+                var transmission = hud.vehicle.GetComponent<VehicleTransmission>();
+                if (transmission != null)
+                {
+                    if (transmission.mode == VehicleTransmission.TransmissionMode.Automatic)
+                    {
+                        transmission.mode = VehicleTransmission.TransmissionMode.Manual;
+                        Debug.Log("[HUDExtension] Transmission set to MANUAL");
+                    }
+                    else
+                    {
+                        transmission.mode = VehicleTransmission.TransmissionMode.Automatic;
+                        Debug.Log("[HUDExtension] Transmission set to AUTOMATIC");
+                    }
+                }
+            }
+        });
     }
 
     void UpdateOverrideState()

@@ -114,7 +114,7 @@
                     
                     <ui:Label text="VEHICLE SYSTEM" class="settings-header" style="margin-top: 10px;" />
                      <ui:VisualElement class="setting-row">
-                        <ui:Label text="Headlights" class="setting-label" />
+                        <ui:Label text="Option" class="setting-label" />
                         <ui:Button name="toggle-headlights" class="hud-toggle"><ui:VisualElement class="toggle-handle" /></ui:Button>
                     </ui:VisualElement>
                     

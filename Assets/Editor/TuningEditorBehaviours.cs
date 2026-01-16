@@ -14,23 +14,23 @@ namespace AtlasAuto.Editor
         // =========================
         public class EngineSettings
         {
-            public VehicleEngine.EngineType engineType;
+            public VehicleEngine.EngineType engineType = VehicleEngine.EngineType.InternalCombustion;
 
-            [EditorRange(0f, 2000f)] public float horsepowerHP;
-            [EditorRange(0f, 1500f)] public float maxPowerKW;
+            [EditorRange(0f, 2000f)] public float horsepowerHP = 300f;
+            [EditorRange(0f, 1500f)] public float maxPowerKW = 220f;
 
-            [EditorRange(0f, 2000f)] public float peakTorqueNm;
-            [EditorRange(0f, 12000f)] public float maxRPM;
-            [EditorRange(0f, 5f)] public float inertia;
+            [EditorRange(0f, 2000f)] public float peakTorqueNm = 400f;
+            [EditorRange(0f, 12000f)] public float maxRPM = 7000f;
+            [EditorRange(0f, 5f)] public float inertia = 0.15f;
 
-            [EditorRange(0f, 12000f)] public float peakTorqueRPM;
-            [EditorRange(0f, 12000f)] public float peakPowerRPM;
-            [EditorRange(0f, 3000f)] public float idleRPM;
+            [EditorRange(0f, 12000f)] public float peakTorqueRPM = 4500f;
+            [EditorRange(0f, 12000f)] public float peakPowerRPM = 6000f;
+            [EditorRange(0f, 3000f)] public float idleRPM = 800f;
 
-            [EditorRange(0f, 12000f)] public float evBaseRPM;
+            [EditorRange(0f, 12000f)] public float evBaseRPM = 1000f;
 
-            [EditorRange(0f, 200f)] public float frictionTorque;
-            [EditorRange(0f, 300f)] public float brakingTorque;
+            [EditorRange(0f, 200f)] public float frictionTorque = 20f;
+            [EditorRange(0f, 300f)] public float brakingTorque = 50f;
         }
 
         // =========================
@@ -38,13 +38,13 @@ namespace AtlasAuto.Editor
         // =========================
         public class PowertrainSettings
         {
-            public bool isElectricVehicle;
+            public bool isElectricVehicle = false;
 
             public enum DrivetrainType { RWD, FWD, AWD }
-            public DrivetrainType drivetrain;
+            public DrivetrainType drivetrain = DrivetrainType.RWD;
 
-            [EditorRange(50f, 500f)] public float topSpeedKMH;
-            [EditorRange(0.1f, 1.0f)] public float physicsWheelRadius;
+            [EditorRange(50f, 500f)] public float topSpeedKMH = 250f;
+            [EditorRange(0.1f, 1.0f)] public float physicsWheelRadius = 0.35f;
         }
 
         // =========================
@@ -52,19 +52,19 @@ namespace AtlasAuto.Editor
         // =========================
         public class TransmissionSettings
         {
-            public VehicleTransmission.TransmissionMode mode;
-            public bool isElectric;
+            public VehicleTransmission.TransmissionMode mode = VehicleTransmission.TransmissionMode.Automatic;
+            public bool isElectric = false;
 
-            [EditorRange(1f, 10f)] public float finalDriveRatio;
-            [EditorRange(1f, 15f)] public float reverseRatio;
+            [EditorRange(1f, 10f)] public float finalDriveRatio = 3.5f;
+            [EditorRange(1f, 15f)] public float reverseRatio = 3.2f;
 
             // EV
-            [EditorRange(1f, 20f)] public float electricFixedRatio;
+            [EditorRange(1f, 20f)] public float electricFixedRatio = 9.0f;
 
             // ICE Shift Logic
-            [EditorRange(0.5f, 1f)] public float upshiftRPM;
-            [EditorRange(0f, 0.8f)] public float downshiftRPM;
-            [EditorRange(0f, 1f)] public float shiftDuration;
+            [EditorRange(0.5f, 1f)] public float upshiftRPM = 0.85f;
+            [EditorRange(0.2f, 0.7f)] public float downshiftRPM = 0.45f;
+            [EditorRange(0f, 1f)] public float shiftDuration = 0.2f;
         }
 
         // =========================
@@ -72,14 +72,26 @@ namespace AtlasAuto.Editor
         // =========================
         public class HandlingSettings
         {
-            [EditorRange(500f, 5000f)] public float vehicleMass;
-            public Vector3 centerOfMassOffset;
+            [EditorRange(500f, 5000f)] public float vehicleMass = 1500f;
+            public Vector3 centerOfMassOffset = new Vector3(0f, -0.5f, 0.1f);
 
-            [EditorRange(0f, 10000f)] public float maxBrakeTorque;
-            [EditorRange(0f, 1f)] public float frontBrakeBias;
+            [EditorRange(0f, 10000f)] public float maxBrakeTorque = 5000f;
+            [EditorRange(0f, 1f)] public float frontBrakeBias = 0.65f;
 
-            [EditorRange(0.5f, 10f)] public float corneringStiffness;
-            [EditorRange(0f, 20f)] public float downforceFactor;
+            [EditorRange(0.5f, 5f)] public float corneringStiffness = 2.5f;
+            [EditorRange(0f, 10f)] public float downforceFactor = 3f;
+            
+            [NameInEditor("Weight Transfer")]
+            [EditorRange(0f, 1f)] public float weightTransferFactor = 0.4f;
+            
+            [NameInEditor("Load Sensitivity")]
+            [EditorRange(0f, 2f)] public float loadSensitivity = 0.8f;
+            
+            [NameInEditor("Counter-Steer Assist")]
+            [EditorRange(0f, 1f)] public float counterSteerAssist = 0.3f;
+            
+            [NameInEditor("Traction Control")]
+            [EditorRange(0f, 1f)] public float tractionControl = 0.2f;
         }
 
         // =========================
@@ -87,8 +99,15 @@ namespace AtlasAuto.Editor
         // =========================
         public class SteeringSettings
         {
-            [EditorRange(5f, 60f)] public float maxSteerAngle;
-            public bool speedSensitiveSteering;
+            [EditorRange(5f, 60f)] public float maxSteerAngle = 35f;
+            
+            [NameInEditor("Steering Response")]
+            [EditorRange(0.5f, 3f)] public float steeringResponse = 1.5f;
+            
+            [NameInEditor("Return Speed")]
+            [EditorRange(1f, 15f)] public float steeringReturnSpeed = 8f;
+            
+            public bool speedSensitiveSteering = true;
         }
 
         // =========================
@@ -96,11 +115,11 @@ namespace AtlasAuto.Editor
         // =========================
         public class SuspensionSettings
         {
-            [EditorRange(0.05f, 0.5f)] public float suspensionDistance;
+            [EditorRange(0.05f, 0.5f)] public float suspensionDistance = 0.2f;
 
-            public VehicleSuspension.SpringFrequency frequency;
-            public VehicleSuspension.DampRatio damping;
-            public VehicleSuspension.FrontRearBias bias;
+            public VehicleSuspension.SpringFrequency frequency = VehicleSuspension.SpringFrequency.Comfort;
+            public VehicleSuspension.DampRatio damping = VehicleSuspension.DampRatio.Comfort;
+            public VehicleSuspension.FrontRearBias bias = VehicleSuspension.FrontRearBias.FiftyFifty;
         }
 
         // =========================
@@ -109,7 +128,7 @@ namespace AtlasAuto.Editor
         public class AntiRollSettings
         {
             [EditorRange(0f, 50000f)]
-            public float antiRollForce;
+            public float antiRollForce = 5000f;
         }
 
         // =========================
@@ -118,11 +137,11 @@ namespace AtlasAuto.Editor
         public class BrakeSettings
         {
             [EditorRange(0f, 10000f)]
-            public float maxBrakeTorque;
+            public float maxBrakeTorque = 3000f;
         }
 
         // =========================
-        // DEBUG (READONLY INTENT)
+        // DEBUG (INTERNAL - NOT IN SIDEBAR)
         // =========================
         public class DebugSettings
         {
@@ -139,11 +158,11 @@ namespace AtlasAuto.Editor
         // =========================
         public class Wheel
         {
-            public bool isFront;
-            public bool isSteer;
-            public bool isMotor;
+            public bool isFront = false;
+            public bool isSteer = false;
+            public bool isMotor = true;
 
-            [EditorRange(0f, 360f)] public float steerSpeed;
+            [EditorRange(0f, 360f)] public float steerSpeed = 120f;
         }
 
         // =========================
@@ -157,7 +176,8 @@ namespace AtlasAuto.Editor
         [ExportToSidebar("Suspension")] public SuspensionSettings suspension;
         [ExportToSidebar("Anti Roll")] public AntiRollSettings antiRoll;
         [ExportToSidebar("Brakes")] public BrakeSettings brakes;
-        [ExportToSidebar("Debug")] public DebugSettings debug;
+        // Debug settings are internal, not exported to sidebar
+        public DebugSettings debug;
 
         public Wheel wheelFl;
         public Wheel wheelFr;

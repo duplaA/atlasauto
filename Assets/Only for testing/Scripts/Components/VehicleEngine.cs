@@ -42,8 +42,8 @@ public class VehicleEngine : MonoBehaviour
     public float evBaseRPM = 3000f;
 
     [Header("Friction")]
-    public float frictionTorque = 15f; // Constant drag
-    public float brakingTorque = 60f; // Engine braking at 0 throttle
+    public float frictionTorque = 10f; // Reduced constant drag
+    public float brakingTorque = 40f; // Engine braking at 0 throttle
 
     [Header("State")]
     public float currentRPM;
@@ -68,35 +68,33 @@ public class VehicleEngine : MonoBehaviour
     
     void GenerateTorqueCurve()
     {
-        // generate a realistic torque curve
+        // Generate a realistic torque curve that actually reaches peak values
         proceduralTorqueCurve = new AnimationCurve();
         
-        // Idle: 60% torque
-        proceduralTorqueCurve.AddKey(new Keyframe(0f, 0.7f)); 
+        // Idle: 80% torque (engines make good torque even at idle)
+        proceduralTorqueCurve.AddKey(new Keyframe(0f, 0.8f)); 
         
         // Peak Torque RPM: 100% torque
         float peakTorqueNorm = peakTorqueRPM / maxRPM;
         proceduralTorqueCurve.AddKey(new Keyframe(peakTorqueNorm, 1.0f));
         
-        // We WANT to hit exactly 'horsepowerHP' at 'peakPowerRPM'.
+        // Peak Power RPM: We want to hit exactly 'horsepowerHP' here
         // RequiredTorque = (PowerKW * 9549) / RPM
         // CurveFactor = RequiredTorque / peakTorqueNm 
         float requiredTorqueForPeakHP = (maxPowerKW * 1000f * 9.549f) / Mathf.Max(peakPowerRPM, 1f);
         float powerPointFactor = requiredTorqueForPeakHP / Mathf.Max(peakTorqueNm, 1f);
         
-        // Clamp it reasonably (can't produce MORE than mechanical peak torque implies)
-        // For realism, we should stick to 1.0 peak, implying the user's config is impossible
-        // Let's cap at 1.0f (User needs to raise PeakTorque if they want more HP at low RPM)
-        powerPointFactor = Mathf.Min(powerPointFactor, 1.0f);
+        // Allow curve to go above 1.0 if the HP/Torque config requires it at peak power RPM
+        // This ensures we actually deliver the configured HP
+        powerPointFactor = Mathf.Max(powerPointFactor, 0.85f); // At minimum 85% at peak power
         float peakPowerNorm = peakPowerRPM / maxRPM;
         proceduralTorqueCurve.AddKey(new Keyframe(peakPowerNorm, powerPointFactor)); 
         
-        // Redline: Maintain more power
-        // Don't drop to 0.5. Drop to maybe 0.7 or maintain power?
-        proceduralTorqueCurve.AddKey(new Keyframe(1.0f, 0.7f));
+        // Redline: Maintain decent power (80% for aggressive feel)
+        proceduralTorqueCurve.AddKey(new Keyframe(1.0f, 0.8f));
         
-        // Linearize tangents for smooth curve
-        for (int i=0; i < proceduralTorqueCurve.length; i++) 
+        // Smooth tangents for realistic curve
+        for (int i = 0; i < proceduralTorqueCurve.length; i++) 
             proceduralTorqueCurve.SmoothTangents(i, 0f);            
         Debug.Log($"[VehicleEngine] Generated Torque Curve. Peak Torque @ {peakTorqueRPM}, Peak Power Factor {powerPointFactor:F2} @ {peakPowerRPM}");
     }
@@ -145,10 +143,39 @@ public class VehicleEngine : MonoBehaviour
         }
 
         // Apply friction/pumping losses
-        float drag = frictionTorque + (brakingTorque * (1f - throttle) * (currentRPM / maxRPM));
+        // Realism: Pumping losses increase with RPM squared
+        float rpmFactor = currentRPM / maxRPM;
+        float pumpingLoss = frictionTorque * (1f + (rpmFactor * rpmFactor * 2f));
+        
+        // Engine Braking: Stronger at high RPM, zero at idle
+        // Only applies when off-throttle
+        float offThrottleBraking = 0f;
+        if (throttle < 0.05f)
+        {
+            offThrottleBraking = brakingTorque * rpmFactor * 1.5f; 
+        }
+
+        float drag = pumpingLoss + offThrottleBraking;
         float netTorque = availableTorque - drag;
         
-        if (throttle > 0.1f) netTorque = Mathf.Max(netTorque, 0f);
+        // If ON throttle, we shouldn't be fighting "brakingTorque", only friction
+        // But friction should always exist.
+        if (throttle > 0.1f) 
+        {
+            netTorque = Mathf.Max(netTorque, -pumpingLoss); // allow small negative for friction
+        }
+        
+        // REV LIMITER: Cut torque when approaching redline
+        // This prevents acceleration past maxRPM in manual mode
+        float revLimiterThreshold = 0.95f; // Start limiting at 95% of maxRPM
+        float rpmRatio = currentRPM / maxRPM;
+        if (rpmRatio > revLimiterThreshold)
+        {
+            // Linear dropoff from 95% to 100% RPM
+            float limiterFactor = 1f - ((rpmRatio - revLimiterThreshold) / (1f - revLimiterThreshold));
+            limiterFactor = Mathf.Clamp01(limiterFactor);
+            netTorque *= limiterFactor;
+        }
         
         return netTorque;
     }

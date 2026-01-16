@@ -72,7 +72,7 @@ using UnityEngine.InputSystem.Utilities;
 /// }
 /// </code>
 /// </example>
-public partial class @VehicleControls : IInputActionCollection2, IDisposable
+public partial class @VehicleControls: IInputActionCollection2, IDisposable
 {
     /// <summary>
     /// Provides access to the underlying asset instance.
@@ -100,6 +100,24 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""ShiftUp"",
+                    ""type"": ""Button"",
+                    ""id"": ""a1b2c3d4-e5f6-7890-abcd-ef1234567890"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ShiftDown"",
+                    ""type"": ""Button"",
+                    ""id"": ""b2c3d4e5-f6a7-8901-bcde-f12345678901"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -168,6 +186,28 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c3d4e5f6-a7b8-9012-cdef-123456789012"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ShiftUp"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d4e5f6a7-b8c9-0123-defa-234567890123"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ShiftDown"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -177,6 +217,8 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
         // Vehicle
         m_Vehicle = asset.FindActionMap("Vehicle", throwIfNotFound: true);
         m_Vehicle_Move = m_Vehicle.FindAction("Move", throwIfNotFound: true);
+        m_Vehicle_ShiftUp = m_Vehicle.FindAction("ShiftUp", throwIfNotFound: true);
+        m_Vehicle_ShiftDown = m_Vehicle.FindAction("ShiftDown", throwIfNotFound: true);
     }
 
     ~@VehicleControls()
@@ -258,6 +300,8 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
     private readonly InputActionMap m_Vehicle;
     private List<IVehicleActions> m_VehicleActionsCallbackInterfaces = new List<IVehicleActions>();
     private readonly InputAction m_Vehicle_Move;
+    private readonly InputAction m_Vehicle_ShiftUp;
+    private readonly InputAction m_Vehicle_ShiftDown;
     /// <summary>
     /// Provides access to input actions defined in input action map "Vehicle".
     /// </summary>
@@ -273,6 +317,14 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Vehicle/Move".
         /// </summary>
         public InputAction @Move => m_Wrapper.m_Vehicle_Move;
+        /// <summary>
+        /// Provides access to the underlying input action "Vehicle/ShiftUp".
+        /// </summary>
+        public InputAction @ShiftUp => m_Wrapper.m_Vehicle_ShiftUp;
+        /// <summary>
+        /// Provides access to the underlying input action "Vehicle/ShiftDown".
+        /// </summary>
+        public InputAction @ShiftDown => m_Wrapper.m_Vehicle_ShiftDown;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -302,6 +354,12 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
             @Move.started += instance.OnMove;
             @Move.performed += instance.OnMove;
             @Move.canceled += instance.OnMove;
+            @ShiftUp.started += instance.OnShiftUp;
+            @ShiftUp.performed += instance.OnShiftUp;
+            @ShiftUp.canceled += instance.OnShiftUp;
+            @ShiftDown.started += instance.OnShiftDown;
+            @ShiftDown.performed += instance.OnShiftDown;
+            @ShiftDown.canceled += instance.OnShiftDown;
         }
 
         /// <summary>
@@ -316,6 +374,12 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
             @Move.started -= instance.OnMove;
             @Move.performed -= instance.OnMove;
             @Move.canceled -= instance.OnMove;
+            @ShiftUp.started -= instance.OnShiftUp;
+            @ShiftUp.performed -= instance.OnShiftUp;
+            @ShiftUp.canceled -= instance.OnShiftUp;
+            @ShiftDown.started -= instance.OnShiftDown;
+            @ShiftDown.performed -= instance.OnShiftDown;
+            @ShiftDown.canceled -= instance.OnShiftDown;
         }
 
         /// <summary>
@@ -363,5 +427,19 @@ public partial class @VehicleControls : IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMove(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ShiftUp" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnShiftUp(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ShiftDown" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnShiftDown(InputAction.CallbackContext context);
     }
 }
