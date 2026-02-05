@@ -7353,11 +7353,8 @@ MonoBehaviour:
   sensitivityY: 5
   minVerticalAngle: -20
   maxVerticalAngle: 60
-  cameraMode: 0
   speedDistanceAdd: 4
   baseFOV: 60
-  fovPerSpeedKMH: 0.075
-  minFOV: 68
   maxFOV: 85
   effectMaxSpeed: 200
   followSmoothness: 10
@@ -7366,13 +7363,6 @@ MonoBehaviour:
   enableShake: 1
   maxShakeIntensity: 0.15
   shakeFrequency: 25
-  bumpFrequencyScale: 0.5
-  highSpeedShakeAmplitude: 1.2
-  rollPerG: 12
-  pitchPerDeflection: 6
-  yawWobbleScale: 0.6
-  rollPeakSpeedMin: 40
-  rollPeakSpeedMax: 200
 --- !u!1 &538831594 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -5493567880199346744, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -13282,28 +13272,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   engine: {fileID: 0}
   transmission: {fileID: 0}
-  tyres: {fileID: 0}
-  suspension: {fileID: 0}
   isElectricVehicle: 0
   drivetrain: 2
-  differentialAccelSplitRWD: 0.5
-  differentialDecelSplitRWD: 0.35
-  differentialAccelSplitFWD: 0.22
-  differentialAWDRearBias: 0.65
   topSpeedKMH: 300
   physicsWheelRadius: 0.24
   vehicleMass: 1997
   centerOfMassOffset: {x: 0, y: -0.4, z: 0.1}
   maxBrakeTorque: 3000
   frontBrakeBias: 0.7
-  brakePressureMultiplier: 1
   corneringStiffness: 2
   downforceFactor: 5
-  downforceExponent: 1.8
-  dragCoefficient: 0.3
-  frontalArea: 2.2
   weightTransferFactor: 0.4
-  springRateAvgNpm: 40000
   loadSensitivity: 0.8
   counterSteerAssist: 0.3
   tractionControl: 0.2
@@ -13317,9 +13296,7 @@ MonoBehaviour:
   driveTorque: 0
   expectedSpeedKMH: 0
   slipRatio: 0
-  maxSlipRatio: 0
   debugWheelRadius: 0
-  averageSuspensionDeflection: 0
 --- !u!114 &822505608
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13419,7 +13396,6 @@ MonoBehaviour:
   wheelL: {fileID: 2142579050}
   wheelR: {fileID: 602854703}
   antiRollForce: 6000
-  weightShiftARBScale: 0.5
 --- !u!114 &822505615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13435,7 +13411,6 @@ MonoBehaviour:
   wheelL: {fileID: 101398381}
   wheelR: {fileID: 2124217709}
   antiRollForce: 8000
-  weightShiftARBScale: 0.5
 --- !u!114 &822505618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13465,74 +13440,6 @@ MonoBehaviour:
   shiftDuration: 0.3
   currentGear: 0
   clutchEngagement: 1
---- !u!114 &822505619
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 822505605}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8e6b4c29d8b845408985291f6048473, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  longitudinalPeakSlip: 0.25
-  longitudinalPeakValue: 1.5
-  longitudinalAsymptoteValue: 0.9
-  longitudinalStiffness: 2
-  peakSlipAngleDeg: 12
-  lateralPeakValue: 1.8
-  lateralAsymptoteValue: 1
-  lateralStiffness: 2.5
-  rwdRearSlipMultiplier: 1.2
-  drivetrain: 0
-  enableTireTemperature: 0
-  optimalTempC: 95
-  ambientTempC: 25
-  heatRatePerSlip: 2
-  coolingRate: 0.02
-  enableTirePressure: 0
-  tirePressurePsi: 32
---- !u!114 &822505620
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 822505605}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a54b431664541e4fa35189cc302cd33, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  volume: {fileID: 1249044894}
-  blurStartSpeedKMH: 80
-  blurFullSpeedKMH: 350
-  maxBlurIntensity: 1.2
-  wheelBlurMultiplier: 2
-  environmentBlurScale: 0.5
-  focusDistanceBase: 8
-  focusDistancePerSpeed: 0.04
-  apertureAtRest: 22
-  apertureAtMaxSpeed: 2.5
---- !u!114 &822505621
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 822505605}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_IsGlobal: 1
-  priority: 0
-  blendDistance: 0
-  weight: 1
-  sharedProfile: {fileID: 11400000, guid: e07d6126be83edf4796c029ee327570c, type: 2}
 --- !u!1 &822889092 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3454074623951443645, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -17429,28 +17336,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   engine: {fileID: 0}
   transmission: {fileID: 0}
-  tyres: {fileID: 0}
-  suspension: {fileID: 0}
   isElectricVehicle: 0
   drivetrain: 0
-  differentialAccelSplitRWD: 0.5
-  differentialDecelSplitRWD: 0.35
-  differentialAccelSplitFWD: 0.22
-  differentialAWDRearBias: 0.65
   topSpeedKMH: 250
   physicsWheelRadius: 0.34
   vehicleMass: 1500
   centerOfMassOffset: {x: 0, y: -0.5, z: 0.2}
   maxBrakeTorque: 10000
   frontBrakeBias: 0.7
-  brakePressureMultiplier: 1
   corneringStiffness: 2
   downforceFactor: 5
-  downforceExponent: 1.8
-  dragCoefficient: 0.3
-  frontalArea: 2.2
   weightTransferFactor: 0.4
-  springRateAvgNpm: 40000
   loadSensitivity: 0.8
   counterSteerAssist: 0.3
   tractionControl: 0.2
@@ -17464,9 +17360,7 @@ MonoBehaviour:
   driveTorque: 0
   expectedSpeedKMH: 0
   slipRatio: 0
-  maxSlipRatio: 0
   debugWheelRadius: 0
-  averageSuspensionDeflection: 0
 --- !u!114 &1086762340
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19538,55 +19432,6 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -5810850656376259588, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
---- !u!1 &1249044893
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1249044895}
-  - component: {fileID: 1249044894}
-  m_Layer: 0
-  m_Name: Global Volume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1249044894
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1249044893}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_IsGlobal: 1
-  priority: 0
-  blendDistance: 0
-  weight: 1
-  sharedProfile: {fileID: 11400000, guid: cbf55c26628f2834cbd20588344c7b92, type: 2}
---- !u!4 &1249044895
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1249044893}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -278.9497, y: 39.021523, z: -1341.02}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1256351333 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8199127837501332208, guid: 36df222d10fde134daf742bb247d53ab, type: 3}
@@ -27637,15 +27482,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
       insertIndex: -1
       addedObject: {fileID: 822505618}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 822505621}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 822505620}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 822505619}
     - targetCorrespondingSourceObject: {fileID: 8821294456061963822, guid: 07f85845030fc224a8ccfad36c172c95, type: 3}
       insertIndex: -1
       addedObject: {fileID: 941591636}
@@ -30659,4 +30495,3 @@ SceneRoots:
   - {fileID: 1916593891}
   - {fileID: 646085443}
   - {fileID: 110407723}
-  - {fileID: 1249044895}
