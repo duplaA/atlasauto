@@ -16,12 +16,16 @@ public class AntiRollBar : MonoBehaviour
     [Tooltip("Anti-roll force strength. Higher = less body roll.")]
     [Range(0f, 50000f)]
     public float antiRollForce = 15000f;
+    [Tooltip("FH5: scale ARB by 1 + weightShiftPercent * 0.5.")]
+    [Range(0f, 1f)] public float weightShiftARBScale = 0.5f;
 
     private Rigidbody rb;
+    private VehicleController vc;
 
     void Start()
     {
         rb = GetComponentInParent<Rigidbody>();
+        vc = GetComponentInParent<VehicleController>();
         if (rb == null)
         {
             Debug.LogError("[AntiRollBar] No Rigidbody found in parent hierarchy.");
@@ -37,13 +41,11 @@ public class AntiRollBar : MonoBehaviour
 
     void ApplyAntiRoll()
     {
-        // Get suspension compression for each wheel
         float travelL = GetWheelTravel(wheelL);
         float travelR = GetWheelTravel(wheelR);
-
-        // Calculate the force difference
-        // If left wheel is more compressed (travel closer to 0), apply downward force to right
-        float antiRollForceMagnitude = (travelL - travelR) * antiRollForce;
+        float weightShiftPercent = (vc != null) ? vc.WeightShiftPercent : 0f;
+        float effectiveARB = antiRollForce * (1f + weightShiftPercent * weightShiftARBScale);
+        float antiRollForceMagnitude = (travelL - travelR) * effectiveARB;
 
         // Apply forces at wheel positions
         if (wheelL.isGrounded)

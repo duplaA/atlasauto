@@ -20,7 +20,10 @@ public class VehicleWheel : MonoBehaviour
 
     // Internal state
     private float currentSteerAngle = 0f;
-    private float visualRotation = 0f; 
+    private float visualRotation = 0f;
+
+    /// <summary>Normalized suspension deflection 0 (extended) to 1 (compressed). Updated in UpdateVisuals.</summary>
+    public float SuspensionDeflection { get; private set; }
 
     // Removed internal LateUpdate - VehicleController will drive this now for perfect sync
     
@@ -65,6 +68,15 @@ public class VehicleWheel : MonoBehaviour
         Quaternion rot;
         wheelCollider.GetWorldPose(out pos, out rot);
         wheelVisual.position = pos;
+
+        // Suspension deflection: rest hub (extended) vs current hub along suspension axis
+        float dist = wheelCollider.suspensionDistance;
+        if (dist > 0.001f)
+        {
+            Vector3 restHub = wheelCollider.transform.position + wheelCollider.transform.up * (dist * 0.5f);
+            float deflection = Vector3.Dot(restHub - pos, wheelCollider.transform.up) / dist;
+            SuspensionDeflection = Mathf.Clamp01(deflection);
+        }
 
         // 2. Smooth Steering
         currentSteerAngle = Mathf.MoveTowards(currentSteerAngle, targetSteer, steerSpeed * Time.deltaTime);

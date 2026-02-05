@@ -10,6 +10,8 @@ public class VehicleDataLink : MonoBehaviour
     private VehicleController vc;
     private VehicleEngine engine;
     private VehicleTransmission transmission;
+    private VehicleSpeedSense speedSense;
+    private VehicleGForceCalculator gForce;
 
     void Awake()
     {
@@ -24,6 +26,10 @@ public class VehicleDataLink : MonoBehaviour
             engine = vc.engine;
             transmission = vc.transmission;
         }
+        if (speedSense == null) speedSense = GetComponent<VehicleSpeedSense>();
+        if (speedSense == null && vc != null) speedSense = vc.GetComponent<VehicleSpeedSense>();
+        if (gForce == null) gForce = GetComponent<VehicleGForceCalculator>();
+        if (gForce == null && vc != null) gForce = vc.GetComponent<VehicleGForceCalculator>();
     }
 
     #region Telemetry (Read-Only)
@@ -33,6 +39,11 @@ public class VehicleDataLink : MonoBehaviour
     public float SpeedMS => vc != null ? vc.speedMS : 0f;
     public bool IsBraking => vc != null ? vc.isCurrentlyBraking : false;
     public float SlipRatio => vc != null ? vc.slipRatio : 0f;
+    public float MaxSlipRatio => vc != null ? vc.maxSlipRatio : 0f;
+    public float SpeedNorm => speedSense != null ? speedSense.SpeedNorm : (vc != null && vc.topSpeedKMH > 0.01f ? Mathf.Clamp01(vc.speedKMH / vc.topSpeedKMH) : 0f);
+    public float LateralG => gForce != null ? gForce.LateralG : 0f;
+    public float LongitudinalG => gForce != null ? gForce.LongitudinalG : 0f;
+    public float AverageSuspensionDeflection => vc != null ? vc.averageSuspensionDeflection : 0f;
 
     // Engine
     public float EngineRPM => engine != null ? engine.currentRPM : 0f;
@@ -95,6 +106,11 @@ public class VehicleDataLink : MonoBehaviour
     #endregion
 
     void OnValidate()
+    {
+        Initialize();
+    }
+
+    void Start()
     {
         Initialize();
     }
