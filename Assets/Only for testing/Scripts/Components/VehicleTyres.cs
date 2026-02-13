@@ -56,6 +56,14 @@ public class VehicleTyres : MonoBehaviour
     [Tooltip("Responsiveness = pressure/30 (higher = sharper turn-in).")]
     public float ResponsivenessFromPressure => enableTirePressure ? Mathf.Clamp(tirePressurePsi / 30f, 0.8f, 1.2f) : 1f;
 
+    [Header("Front Steering Tug (Optional)")]
+    [Tooltip("Enable front steering tug when front wheels lose traction.")]
+    public bool enableFrontSteeringTug = false;
+    [Tooltip("Forward slip threshold for steering tug (0.15-0.3 typical).")]
+    [Range(0.1f, 0.5f)] public float frontTugSlipThreshold = 0.2f;
+    [Tooltip("Steering stiffness reduction multiplier when tug occurs (0.9 = 10% reduction).")]
+    [Range(0.7f, 1f)] public float frontTugStiffnessReduction = 0.9f;
+
     /// <summary>Convert slip angle (degrees) to approximate slip ratio for curve.</summary>
     public static float SlipAngleToSlipRatio(float degrees)
     {
@@ -84,6 +92,11 @@ public class VehicleTyres : MonoBehaviour
     }
 
     public void UpdateFriction(VehicleWheel[] wheels, float driftFactor = 1.0f)
+    {
+        UpdateFriction(wheels, driftFactor, null);
+    }
+    
+    public void UpdateFriction(VehicleWheel[] wheels, float driftFactor, float[] forwardSlipArray)
     {
         if (wheels == null) return;
         
@@ -121,6 +134,18 @@ public class VehicleTyres : MonoBehaviour
             float tempMult = GetGripMultiplierFromTemp(i);
             float pressureMult = GripBaseMultiplierFromPressure;
             float resp = ResponsivenessFromPressure;
+            
+            // Front steering tug: reduce steering stiffness when front wheels slip
+            float tugMultiplier = 1f;
+            if (enableFrontSteeringTug && w.isFront && forwardSlipArray != null && i < forwardSlipArray.Length)
+            {
+                float absForwardSlip = Mathf.Abs(forwardSlipArray[i]);
+                if (absForwardSlip > frontTugSlipThreshold)
+                {
+                    float tugAmount = Mathf.Clamp01((absForwardSlip - frontTugSlipThreshold) / 0.2f);
+                    tugMultiplier = Mathf.Lerp(1f, frontTugStiffnessReduction, tugAmount);
+                }
+            }
 
             WheelFrictionCurve fwd = w.wheelCollider.forwardFriction;
             fwd.extremumSlip = longitudinalPeakSlip;
@@ -132,6 +157,7 @@ public class VehicleTyres : MonoBehaviour
             side.extremumSlip = lateralExtremumSlip;
             side.extremumValue = (lateralPeakValue * rearMult) * tempMult * pressureMult * driftMult;
             side.asymptoteValue = lateralAsymptoteValue;
+            side.stiffness *= tugMultiplier; // Apply steering tug
             w.wheelCollider.sidewaysFriction = side;
         }
     }

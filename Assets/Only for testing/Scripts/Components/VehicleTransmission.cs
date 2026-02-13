@@ -32,11 +32,17 @@ public class VehicleTransmission : MonoBehaviour
     [Header("State (Read Only)")]
     public int currentGear = 0; // 0=Neutral, -1=Reverse, 1+=Forward
     public float clutchEngagement = 1f; // 0=Disengaged, 1=Fully Engaged
+    /// <summary>True for one frame when a shift just completed. Check this in FixedUpdate.</summary>
+    public bool JustCompletedShift { get; private set; }
     
     // Internal State (ICE shifting)
     private float shiftTimer = 0f;
     private int targetGear = 0;
     private bool isShifting = false;
+    private bool wasShiftingLastFrame = false;
+    
+    /// <summary>Optional callback when shift completes. Called once per shift.</summary>
+    public System.Action OnShiftCompleted;
 
     void Start()
     {
@@ -56,8 +62,9 @@ public class VehicleTransmission : MonoBehaviour
             
             float optimalRatio = (maxRPM * circumference) / (topSpeedMS * 60f);
             
-            // Adjust so we hit Redline exactly at top speed
-            electricFixedRatio = optimalRatio;
+            // optimalRatio is the TOTAL ratio needed, but GetTotalRatio() multiplies
+            // electricFixedRatio by finalDriveRatio, so divide it out here.
+            electricFixedRatio = optimalRatio / finalDriveRatio;
             
             Debug.Log($"[Transmission] Auto-Tuned EV Ratio: {electricFixedRatio:F2} (Target: {vc.topSpeedKMH} km/h @ {maxRPM} RPM)");
         }
@@ -96,9 +103,25 @@ public class VehicleTransmission : MonoBehaviour
                 isShifting = false;
                 currentGear = targetGear;
                 clutchEngagement = 1f;
+                
+                // Detect shift completion
+                if (wasShiftingLastFrame && !isShifting)
+                {
+                    JustCompletedShift = true;
+                    OnShiftCompleted?.Invoke();
+                }
             }
+            wasShiftingLastFrame = true;
             return;
         }
+        
+        // Clear JustCompletedShift flag after one frame
+        if (JustCompletedShift)
+        {
+            JustCompletedShift = false;
+        }
+        
+        wasShiftingLastFrame = false;
 
         if (mode == TransmissionMode.Automatic)
         {

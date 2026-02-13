@@ -11,6 +11,8 @@ public class VehicleController : MonoBehaviour
     public VehicleTransmission transmission;
     public VehicleTyres tyres;
     public VehicleSuspension suspension;
+    public VehicleBodyDynamics bodyDynamics;
+    public VehicleAerodynamics aerodynamics;
     
     [Header("Drift & Handbrake")]
     public bool enableDriftAssist = true;
@@ -44,7 +46,10 @@ public class VehicleController : MonoBehaviour
     public float topSpeedKMH = 250f;
     
     [Tooltip("Override wheel radius for physics calculations (meters). Use if your model has oversized wheels. 0 = use actual WheelCollider radius.")]
+
     public float physicsWheelRadius = 0.34f;
+    [Tooltip("Visual wheel radius for rotation speed (meters). Lower = faster spin.")]
+    public float visualWheelRadius = 0.34f;
 
     [Header("Handling")]
     [Tooltip("For FH5-like smooth weight transfer use Fixed Timestep 0.01-0.005 (100-200 Hz) in Project Settings > Time.")]
@@ -77,6 +82,14 @@ public class VehicleController : MonoBehaviour
     [Range(0f, 1f)] public float counterSteerAssist = 0.3f;
     [Tooltip("Limits wheelspin under acceleration (0=off, 1=full)")]
     [Range(0f, 1f)] public float tractionControl = 0.2f;
+    
+    [Header("Shift Kick")]
+    [Tooltip("Strength of shift kick impulse (rearward force/torque on upshift).")]
+    [Range(0f, 10f)] public float shiftKickStrength = 3f;
+    [Tooltip("Minimum throttle to trigger shift kick (0-1).")]
+    [Range(0f, 1f)] public float shiftKickMinThrottle = 0.7f;
+    [Tooltip("Brief torque spike multiplier for tire chirp on shift (1.0 = no spike).")]
+    [Range(1f, 2f)] public float shiftChirpTorqueMultiplier = 1.3f;
     
     [Header("Steering")]
     public float maxSteerAngle = 35f;
@@ -124,6 +137,14 @@ public class VehicleController : MonoBehaviour
     private float torquePerWheelFrontAWD;
     private float torquePerWheelRearAWD;
     
+    // Per-wheel slip storage for visuals
+    private float[] wheelForwardSlip;
+    private float[] wheelLateralSlip;
+    
+    // Shift kick state
+    private float shiftChirpTimer = 0f;
+    private const float shiftChirpDuration = 0.1f; // Brief spike
+    
     // Gear Logic
     private bool isInputReleaseRequired = false; // For stop-and-switch logic
 
@@ -150,6 +171,13 @@ public class VehicleController : MonoBehaviour
         DiscoverWheels();
         AutoLinkComponents();
         CheckPlayerInput();
+        
+        // Initialize per-wheel slip arrays
+        if (wheels != null && wheels.Length > 0)
+        {
+            wheelForwardSlip = new float[wheels.Length];
+            wheelLateralSlip = new float[wheels.Length];
+        }
     }
 
     void Start()
@@ -175,6 +203,12 @@ public class VehicleController : MonoBehaviour
         if (GetComponent<VehicleSpeedSense>() == null) gameObject.AddComponent<VehicleSpeedSense>();
         if (GetComponent<VehicleGForceCalculator>() == null) gameObject.AddComponent<VehicleGForceCalculator>();
         gForceCalc = GetComponent<VehicleGForceCalculator>();
+        
+        if (bodyDynamics == null) bodyDynamics = GetComponent<VehicleBodyDynamics>();
+        if (bodyDynamics == null) bodyDynamics = gameObject.AddComponent<VehicleBodyDynamics>();
+        
+        if (aerodynamics == null) aerodynamics = GetComponent<VehicleAerodynamics>();
+        if (aerodynamics == null) aerodynamics = gameObject.AddComponent<VehicleAerodynamics>();
 
         SyncPowertrainSettings();
     }
@@ -374,14 +408,22 @@ public class VehicleController : MonoBehaviour
         {
             float steerAngle = CalculateSteerAngle(input.x);
             currentSteer = input.x;
-            float visualCalcRadius = physicsWheelRadius > 0.01f ? physicsWheelRadius : 0.34f;
+            // Use specific visual radius if set, otherwise fallback to physics radius or default
+            float visualCalcRadius = visualWheelRadius > 0.01f ? visualWheelRadius : (physicsWheelRadius > 0.01f ? physicsWheelRadius : 0.34f);
 
-            foreach (var w in wheels) 
+            for (int i = 0; i < wheels.Length; i++)
             {
-               float wheelSteer = 0f;
-               if (w.isSteer) wheelSteer = steerAngle;
-               
-               w.UpdateVisuals(wheelSteer, speedMS, visualCalcRadius);
+                var w = wheels[i];
+                if (w == null) continue;
+                
+                float wheelSteer = 0f;
+                if (w.isSteer) wheelSteer = steerAngle;
+                
+                // Pass per-wheel slip to visuals
+                float forwardSlip = (wheelForwardSlip != null && i < wheelForwardSlip.Length) ? wheelForwardSlip[i] : 0f;
+                float lateralSlip = (wheelLateralSlip != null && i < wheelLateralSlip.Length) ? wheelLateralSlip[i] : 0f;
+                
+                w.UpdateVisuals(wheelSteer, speedMS, visualCalcRadius, forwardSlip, lateralSlip);
             }
 
             float sum = 0f;
@@ -496,6 +538,28 @@ public class VehicleController : MonoBehaviour
         }
 
         transmission.UpdateGearLogic(engine.currentRPM, engine.maxRPM, inputThrottle, dt);
+        
+        // Detect shift completion and apply shift kick
+        if (transmission != null && transmission.JustCompletedShift && inputThrottle > shiftKickMinThrottle)
+        {
+            // Apply shift kick via body dynamics
+            if (bodyDynamics != null)
+            {
+                bodyDynamics.ApplyShiftKick(shiftKickStrength);
+            }
+            
+            // Brief torque spike for tire chirp (if TC is low/off)
+            if (tractionControl < 0.5f)
+            {
+                shiftChirpTimer = shiftChirpDuration;
+            }
+        }
+        
+        // Update shift chirp timer
+        if (shiftChirpTimer > 0f)
+        {
+            shiftChirpTimer -= dt;
+        }
 
         // Calculate acceleration for weight transfer (FH5 formulas)
         Vector3 acceleration = (rb.linearVelocity - lastVelocity) / Mathf.Max(dt, 0.001f);
@@ -523,34 +587,53 @@ public class VehicleController : MonoBehaviour
         lateralGStored = lateralG;
         weightShiftPercentStored = weightShift;
         if (suspension == null) suspension = GetComponent<VehicleSuspension>();
-        if (suspension != null) suspension.UpdateSuspension(wheels, weightShiftPercentStored);
+        if (suspension != null) suspension.UpdateSuspension(wheels, weightShiftPercentStored, longitudinalG);
         
         float driftFactor = 1f;
         if (isHandbrakePulled) driftFactor = handbrakeSlipMultiplier;
         
-        if (tyres != null) tyres.UpdateFriction(wheels, driftFactor);
+        if (tyres != null) tyres.UpdateFriction(wheels, driftFactor, wheelForwardSlip);
         
         // Calculate lateral slip for counter-steer and drift detection
         Vector3 localVel = transform.InverseTransformDirection(rb.linearVelocity);
         lateralSlip = Mathf.Abs(localVel.x) / Mathf.Max(speedMS, 1f);
         
-        // FH5 aero: downforce (speed/100)^1.8, optional scale below 150 km/h; drag
-        if (isGroundedAny() && speedKMH > 20f)
+        // Apply aerodynamics (unified aero system with high-speed settling)
+        if (aerodynamics != null)
         {
-            float speedNorm = speedKMH / 100f;
-            float downforceMagnitude = downforceFactor * vehicleMass * Mathf.Pow(speedNorm, downforceExponent);
-            float downforceScale = Mathf.Clamp01(Mathf.InverseLerp(80f, 150f, speedKMH));
-            rb.AddForce(-transform.up * (downforceMagnitude * downforceScale), ForceMode.Force);
-            float loadNorm = Mathf.Pow(speedNorm, downforceExponent) * downforceScale;
-            float loadBonus = 1f + (loadNorm * loadSensitivity * 0.3f);
-            frontGripMultiplier *= loadBonus;
-            rearGripMultiplier *= loadBonus;
+            aerodynamics.ApplyAerodynamics(rb);
+            
+            // Apply grip bonus from downforce
+            if (isGroundedAny() && speedKMH > 20f)
+            {
+                float speedNorm = speedKMH / 100f;
+                float downforceScale = Mathf.Clamp01(Mathf.InverseLerp(80f, 150f, speedKMH));
+                float loadNorm = Mathf.Pow(speedNorm, downforceExponent) * downforceScale;
+                float loadBonus = 1f + (loadNorm * loadSensitivity * 0.3f);
+                frontGripMultiplier *= loadBonus;
+                rearGripMultiplier *= loadBonus;
+            }
         }
-        float rho = 1.225f;
-        Vector3 vel = rb.linearVelocity;
-        float speedSq = vel.sqrMagnitude;
-        if (speedSq > 0.01f)
-            rb.AddForce(-vel.normalized * (0.5f * rho * dragCoefficient * frontalArea * speedSq), ForceMode.Force);
+        else
+        {
+            // Fallback: inline aero if component missing
+            if (isGroundedAny() && speedKMH > 20f)
+            {
+                float speedNorm = speedKMH / 100f;
+                float downforceMagnitude = downforceFactor * vehicleMass * Mathf.Pow(speedNorm, downforceExponent);
+                float downforceScale = Mathf.Clamp01(Mathf.InverseLerp(80f, 150f, speedKMH));
+                rb.AddForce(-transform.up * (downforceMagnitude * downforceScale), ForceMode.Force);
+                float loadNorm = Mathf.Pow(speedNorm, downforceExponent) * downforceScale;
+                float loadBonus = 1f + (loadNorm * loadSensitivity * 0.3f);
+                frontGripMultiplier *= loadBonus;
+                rearGripMultiplier *= loadBonus;
+            }
+            float rho = 1.225f;
+            Vector3 vel = rb.linearVelocity;
+            float speedSq = vel.sqrMagnitude;
+            if (speedSq > 0.01f)
+                rb.AddForce(-vel.normalized * (0.5f * rho * dragCoefficient * frontalArea * speedSq), ForceMode.Force);
+        }
         
         float drivenWheelRPM = GetAverageDrivenRPM();
         float totalRatio = transmission.GetTotalRatio();
@@ -743,6 +826,12 @@ public class VehicleController : MonoBehaviour
             {
                 float appliedTorque = (drivetrain == DrivetrainType.AWD) ? (w.isFront ? torquePerWheelFrontAWD : torquePerWheelRearAWD) : torquePerWheel;
                 
+                // Shift chirp: brief torque spike
+                if (shiftChirpTimer > 0f)
+                {
+                    appliedTorque *= shiftChirpTorqueMultiplier;
+                }
+                
                 // Traction control: Smooth intervention
                 if (tractionControl > 0f && isGrounded)
                 {
@@ -810,6 +899,22 @@ public class VehicleController : MonoBehaviour
                 totalSlip += absSlip;
                 if (absSlip > maxSlip) maxSlip = absSlip;
                 slipCount++;
+                
+                // Store per-wheel slip for visuals
+                if (wheelForwardSlip != null && wheelIndex < wheelForwardSlip.Length)
+                {
+                    wheelForwardSlip[wheelIndex] = hit.forwardSlip;
+                    wheelLateralSlip[wheelIndex] = hit.sidewaysSlip;
+                }
+            }
+            else
+            {
+                // No ground contact - zero slip
+                if (wheelForwardSlip != null && wheelIndex < wheelForwardSlip.Length)
+                {
+                    wheelForwardSlip[wheelIndex] = 0f;
+                    wheelLateralSlip[wheelIndex] = 0f;
+                }
             }
             wheelIndex++;
         }

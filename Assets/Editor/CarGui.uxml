@@ -7,6 +7,9 @@
             <ui:VisualElement style="flex-grow: 1; flex-direction: row; align-self: center; justify-content: flex-start; align-items: auto;">
                 <ui:Button text="Begin Authoring" name="Begin" enabled="false" style="font-size: 24px;" />
             </ui:VisualElement>
+            <ui:VisualElement style="flex-grow: 0; flex-direction: row; align-self: center; margin-top: 10px;">
+                <ui:Button text="Edit Selected Vehicle (select one in scene)" name="EditExistingBtn" enabled="false" style="font-size: 14px;" />
+            </ui:VisualElement>
             <ui:VisualElement name="Parts" style="flex-grow: 1; height: 100%; display: flex; visibility: hidden;">
                 <ui:Label text="Car Parts" style="font-size: 23%;" />
                 <ui:ScrollView vertical-scroller-visibility="Auto" horizontal-scroller-visibility="Hidden" name="CarParts" style="visibility: hidden;">
@@ -30,6 +33,7 @@
             <ui:Label text="Finalization" style="-unity-text-align: upper-center;" />
             <ui:Button text="Add to current scene" name="ImportBtn" />
             <ui:Button text="Add as Prefab" name="PrefabBtn" />
+            <ui:Button text="Apply Changes" name="ApplyChangesBtn" />
         </ui:VisualElement>
         <ui:VisualElement name="Content" style="flex-grow: 1; width: 100%;">
             <ui:VisualElement name="PreviewPage" style="flex-grow: 1; width: 100%; height: 100%; align-items: center;">

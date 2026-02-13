@@ -45,10 +45,11 @@ public class CarFollowCamera : MonoBehaviour
     [Tooltip("Base FOV at standstill (Chase: 68-78, Cockpit: 58-65)")]
     public float baseFOV = 72f;
     [Tooltip("FOV add per km/h (Chase: 0.06-0.09, Cockpit: 0.08-0.12)")]
-    [Range(0.04f, 0.14f)] public float fovPerSpeedKMH = 0.075f;
+
+    [Range(0.04f, 0.2f)] public float fovPerSpeedKMH = 0.15f;
     [Tooltip("Min/max FOV (Chase: 68-105, Cockpit: 58-110)")]
     public float minFOV = 68f;
-    public float maxFOV = 105f;
+    public float maxFOV = 110f;
     [Tooltip("Speed at which max effects are reached (km/h)")]
     public float effectMaxSpeed = 200f;
 

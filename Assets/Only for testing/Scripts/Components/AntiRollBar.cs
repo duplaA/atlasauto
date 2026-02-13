@@ -18,6 +18,16 @@ public class AntiRollBar : MonoBehaviour
     public float antiRollForce = 15000f;
     [Tooltip("FH5: scale ARB by 1 + weightShiftPercent * 0.5.")]
     [Range(0f, 1f)] public float weightShiftARBScale = 0.5f;
+    
+    public enum RollIntensityPreset { Soft, Medium, Stiff }
+    
+    [Header("Roll Intensity")]
+    [Tooltip("Preset roll intensity (Soft = more roll, Stiff = less roll).")]
+    public RollIntensityPreset rollIntensityPreset = RollIntensityPreset.Medium;
+    [Tooltip("Manual roll intensity multiplier (0.3-1.0). Lower = more pronounced body roll. Overrides preset if not Medium.")]
+    [Range(0.3f, 1f)] public float rollIntensityMultiplier = 1f;
+    [Tooltip("Use preset instead of manual multiplier.")]
+    public bool usePreset = true;
 
     private Rigidbody rb;
     private VehicleController vc;
@@ -44,7 +54,30 @@ public class AntiRollBar : MonoBehaviour
         float travelL = GetWheelTravel(wheelL);
         float travelR = GetWheelTravel(wheelR);
         float weightShiftPercent = (vc != null) ? vc.WeightShiftPercent : 0f;
-        float effectiveARB = antiRollForce * (1f + weightShiftPercent * weightShiftARBScale);
+        
+        // Calculate roll intensity multiplier
+        float intensityMult = 1f;
+        if (usePreset)
+        {
+            switch (rollIntensityPreset)
+            {
+                case RollIntensityPreset.Soft:
+                    intensityMult = 0.4f; // More roll
+                    break;
+                case RollIntensityPreset.Medium:
+                    intensityMult = 0.7f; // Balanced
+                    break;
+                case RollIntensityPreset.Stiff:
+                    intensityMult = 1f; // Less roll
+                    break;
+            }
+        }
+        else
+        {
+            intensityMult = rollIntensityMultiplier;
+        }
+        
+        float effectiveARB = antiRollForce * (1f + weightShiftPercent * weightShiftARBScale) * intensityMult;
         float antiRollForceMagnitude = (travelL - travelR) * effectiveARB;
 
         // Apply forces at wheel positions

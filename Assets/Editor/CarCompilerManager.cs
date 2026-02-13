@@ -21,9 +21,9 @@ namespace AtlasAuto.Compiler
 
             return Regex.Replace(input, "[^a-zA-Z]", "").ToLower();
         }
+
         public static bool CheckIntegrity(GameObject obj, out int reason, out Dictionary<string, GameObject> parts)
         {
-
             Dictionary<string, GameObject> carParts = new();
             var transform = obj.transform;
             for (int i = 0; i < transform.childCount; i++)
@@ -37,7 +37,7 @@ namespace AtlasAuto.Compiler
             }
 
             parts = carParts;
-            var hasProperties = HasPropertParts(carParts);
+            var hasProperties = HasProperParts(carParts);
 
             if (!hasProperties)
             {
@@ -49,11 +49,10 @@ namespace AtlasAuto.Compiler
             return true;
         }
 
-        static bool HasPropertParts(Dictionary<string, GameObject> parts)
+        static bool HasProperParts(Dictionary<string, GameObject> parts)
         {
             foreach (var part in NECESSARY_PARTS)
             {
-                System.Console.WriteLine(part);
                 if (!parts.ContainsKey(part))
                 {
                     return false;
@@ -118,16 +117,6 @@ namespace AtlasAuto.Compiler
                 var obj = parts[key];
                 if (key.Contains("wheel"))
                 {
-                    // Bounds b = new Bounds(obj.transform.localPosition, Vector3.zero);
-                    // foreach (var r in obj.GetComponentsInChildren<Renderer>())
-                    // {
-                    //     var localBounds = r.localBounds;
-                    //     localBounds.center = obj.transform.InverseTransformPoint(
-                    //         r.transform.TransformPoint(localBounds.center)
-                    //     );
-                    //     b.Encapsulate(localBounds);
-                    // }
-                    // wheelBounds.Add(obj, b);
                     wheelBounds.Add(obj, GetBoundsInWheelLocal(obj.transform));
                 }
             }
@@ -150,10 +139,6 @@ namespace AtlasAuto.Compiler
                 return null;
             }
 
-            // Wheel calculation
-            // Fuckass radius calculation would be too hard, so I lowk decided to use a couple of bounds
-            // A bound ACTUALLY HAS A RADIUS
-            // My job easy yall fuckers
             temporaryInstace.AddComponent<VehicleController>();
             temporaryInstace.AddComponent<VehicleEngine>();
             AntiRollBar antiRollBarFront = temporaryInstace.AddComponent<AntiRollBar>();
@@ -215,9 +200,59 @@ namespace AtlasAuto.Compiler
                 return;
             }
 
-            // =========================
-            // FIND COMPONENTS (structure-agnostic)
-            // =========================
+            // Find or add components
+            var controller = carRoot.GetComponentInChildren<VehicleController>();
+            var engine = carRoot.GetComponentInChildren<VehicleEngine>();
+            var transmission = carRoot.GetComponentInChildren<VehicleTransmission>();
+            if (transmission == null) transmission = carRoot.AddComponent<VehicleTransmission>();
+            var suspension = carRoot.GetComponentInChildren<VehicleSuspension>();
+            if (suspension == null) suspension = carRoot.AddComponent<VehicleSuspension>();
+            var brakes = carRoot.GetComponentInChildren<VehicleBrakes>();
+            var antiRollBars = carRoot.GetComponentsInChildren<AntiRollBar>();
+            var wheels = carRoot.GetComponentsInChildren<VehicleWheel>();
+            var rb = carRoot.GetComponentInChildren<Rigidbody>();
+
+            // Add optional components if settings exist
+            var tyresComp = carRoot.GetComponentInChildren<VehicleTyres>();
+            if (tyresComp == null && t.tyres != null) tyresComp = carRoot.AddComponent<VehicleTyres>();
+            var aeroComp = carRoot.GetComponentInChildren<VehicleAerodynamics>();
+            if (aeroComp == null && t.aerodynamics != null) aeroComp = carRoot.AddComponent<VehicleAerodynamics>();
+            var bodyDynComp = carRoot.GetComponentInChildren<VehicleBodyDynamics>();
+            if (bodyDynComp == null && t.bodyDynamics != null) bodyDynComp = carRoot.AddComponent<VehicleBodyDynamics>();
+
+            if (controller == null)
+            {
+                Debug.LogError("[Tuning] VehicleController not found");
+                return;
+            }
+
+            ApplyAllSettings(controller, engine, transmission, suspension, brakes, antiRollBars, wheels, rb, tyresComp, aeroComp, bodyDynComp, t);
+
+            // Wheels (explicit mapping for baked models)
+            if (parts != null)
+            {
+                ApplyWheel(t.wheelfl, parts, true, true);
+                ApplyWheel(t.wheelfr, parts, true, false);
+                ApplyWheel(t.wheelrl, parts, false, true);
+                ApplyWheel(t.wheelrr, parts, false, false);
+            }
+
+            Debug.Log("[Tuning] All settings applied successfully");
+        }
+
+        /// <summary>
+        /// Apply settings directly to an existing scene vehicle (no bake step).
+        /// </summary>
+        public static void ApplySettingsToExisting(GameObject carRoot, TuningEditorBehaviours t)
+        {
+            if (carRoot == null || t == null)
+            {
+                Debug.LogError("[Tuning] Invalid carRoot or tuning data");
+                return;
+            }
+
+            Undo.RecordObject(carRoot, "Apply Vehicle Tuning");
+
             var controller = carRoot.GetComponentInChildren<VehicleController>();
             var engine = carRoot.GetComponentInChildren<VehicleEngine>();
             var transmission = carRoot.GetComponentInChildren<VehicleTransmission>();
@@ -226,13 +261,51 @@ namespace AtlasAuto.Compiler
             var antiRollBars = carRoot.GetComponentsInChildren<AntiRollBar>();
             var wheels = carRoot.GetComponentsInChildren<VehicleWheel>();
             var rb = carRoot.GetComponentInChildren<Rigidbody>();
+            var tyresComp = carRoot.GetComponentInChildren<VehicleTyres>();
+            var aeroComp = carRoot.GetComponentInChildren<VehicleAerodynamics>();
+            var bodyDynComp = carRoot.GetComponentInChildren<VehicleBodyDynamics>();
 
             if (controller == null)
             {
-                Debug.LogError("[Tuning] VehicleController not found");
+                Debug.LogError("[Tuning] VehicleController not found on selected object");
                 return;
             }
 
+            // Record all components for undo
+            if (engine != null) Undo.RecordObject(engine, "Apply Vehicle Tuning");
+            if (transmission != null) Undo.RecordObject(transmission, "Apply Vehicle Tuning");
+            if (suspension != null) Undo.RecordObject(suspension, "Apply Vehicle Tuning");
+            if (brakes != null) Undo.RecordObject(brakes, "Apply Vehicle Tuning");
+            if (rb != null) Undo.RecordObject(rb, "Apply Vehicle Tuning");
+            if (tyresComp != null) Undo.RecordObject(tyresComp, "Apply Vehicle Tuning");
+            if (aeroComp != null) Undo.RecordObject(aeroComp, "Apply Vehicle Tuning");
+            if (bodyDynComp != null) Undo.RecordObject(bodyDynComp, "Apply Vehicle Tuning");
+            Undo.RecordObject(controller, "Apply Vehicle Tuning");
+            foreach (var arb in antiRollBars) Undo.RecordObject(arb, "Apply Vehicle Tuning");
+
+            ApplyAllSettings(controller, engine, transmission, suspension, brakes, antiRollBars, wheels, rb, tyresComp, aeroComp, bodyDynComp, t);
+
+            EditorUtility.SetDirty(carRoot);
+            Debug.Log("[Tuning] Settings applied to existing vehicle");
+        }
+
+        /// <summary>
+        /// Core settings application shared by both new and existing vehicle flows.
+        /// </summary>
+        static void ApplyAllSettings(
+            VehicleController controller,
+            VehicleEngine engine,
+            VehicleTransmission transmission,
+            VehicleSuspension suspension,
+            VehicleBrakes brakes,
+            AntiRollBar[] antiRollBars,
+            VehicleWheel[] wheels,
+            Rigidbody rb,
+            VehicleTyres tyresComp,
+            VehicleAerodynamics aeroComp,
+            VehicleBodyDynamics bodyDynComp,
+            TuningEditorBehaviours t)
+        {
             // =========================
             // ENGINE
             // =========================
@@ -260,8 +333,14 @@ namespace AtlasAuto.Compiler
                 controller.isElectricVehicle = t.powertrain.isElectricVehicle;
                 controller.topSpeedKMH = t.powertrain.topSpeedKMH;
                 controller.physicsWheelRadius = t.powertrain.physicsWheelRadius;
-                controller.drivetrain =
-                    (VehicleController.DrivetrainType)t.powertrain.drivetrain;
+                controller.visualWheelRadius = t.powertrain.visualWheelRadius;
+                controller.drivetrain = (VehicleController.DrivetrainType)t.powertrain.drivetrain;
+
+                // Differential settings
+                controller.differentialAccelSplitRWD = t.powertrain.differentialAccelSplitRWD;
+                controller.differentialDecelSplitRWD = t.powertrain.differentialDecelSplitRWD;
+                controller.differentialAccelSplitFWD = t.powertrain.differentialAccelSplitFWD;
+                controller.differentialAWDRearBias = t.powertrain.differentialAWDRearBias;
 
                 if (transmission != null)
                     transmission.isElectric = t.powertrain.isElectricVehicle;
@@ -291,8 +370,17 @@ namespace AtlasAuto.Compiler
                 controller.centerOfMassOffset = t.handling.centerOfMassOffset;
                 controller.maxBrakeTorque = t.handling.maxBrakeTorque;
                 controller.frontBrakeBias = t.handling.frontBrakeBias;
+                controller.brakePressureMultiplier = t.handling.brakePressureMultiplier;
                 controller.corneringStiffness = t.handling.corneringStiffness;
                 controller.downforceFactor = t.handling.downforceFactor;
+                controller.downforceExponent = t.handling.downforceExponent;
+                controller.dragCoefficient = t.handling.dragCoefficient;
+                controller.frontalArea = t.handling.frontalArea;
+                controller.weightTransferFactor = t.handling.weightTransferFactor;
+                controller.springRateAvgNpm = t.handling.springRateAvgNpm;
+                controller.loadSensitivity = t.handling.loadSensitivity;
+                controller.counterSteerAssist = t.handling.counterSteerAssist;
+                controller.tractionControl = t.handling.tractionControl;
 
                 if (rb != null)
                 {
@@ -307,7 +395,29 @@ namespace AtlasAuto.Compiler
             if (t.steering != null)
             {
                 controller.maxSteerAngle = t.steering.maxSteerAngle;
+                controller.steeringResponse = t.steering.steeringResponse;
+                controller.steeringReturnSpeed = t.steering.steeringReturnSpeed;
                 controller.speedSensitiveSteering = t.steering.speedSensitiveSteering;
+            }
+
+            // =========================
+            // DRIFT & HANDBRAKE
+            // =========================
+            if (t.drift != null)
+            {
+                controller.enableDriftAssist = t.drift.enableDriftAssist;
+                controller.handbrakeSlipMultiplier = t.drift.handbrakeSlipMultiplier;
+                controller.driftSpinFactor = t.drift.driftSpinFactor;
+            }
+
+            // =========================
+            // SHIFT KICK
+            // =========================
+            if (t.shiftKick != null)
+            {
+                controller.shiftKickStrength = t.shiftKick.shiftKickStrength;
+                controller.shiftKickMinThrottle = t.shiftKick.shiftKickMinThrottle;
+                controller.shiftChirpTorqueMultiplier = t.shiftKick.shiftChirpTorqueMultiplier;
             }
 
             // =========================
@@ -346,18 +456,67 @@ namespace AtlasAuto.Compiler
             }
 
             // =========================
-            // WHEELS (explicit mapping)
+            // AERODYNAMICS
             // =========================
-            ApplyWheel(t.wheelfl, parts, true, true);
-            ApplyWheel(t.wheelfr, parts, true, false);
-            ApplyWheel(t.wheelrl, parts, false, true);
-            ApplyWheel(t.wheelrr, parts, false, false);
+            if (aeroComp != null && t.aerodynamics != null)
+            {
+                aeroComp.dragCoefficient = t.aerodynamics.dragCoefficient;
+                aeroComp.downforceCoefficient = t.aerodynamics.downforceCoefficient;
+                aeroComp.frontalArea = t.aerodynamics.frontalArea;
+                aeroComp.highSpeedThresholdKMH = t.aerodynamics.highSpeedThresholdKMH;
+                aeroComp.highSpeedFullKMH = t.aerodynamics.highSpeedFullKMH;
+                aeroComp.highSpeedDownforceMultiplier = t.aerodynamics.highSpeedDownforceMultiplier;
+                aeroComp.enableBodyWeave = t.aerodynamics.enableBodyWeave;
+                aeroComp.weaveMinSpeedKMH = t.aerodynamics.weaveMinSpeedKMH;
+                aeroComp.weaveTorqueStrength = t.aerodynamics.weaveTorqueStrength;
+                aeroComp.weaveFrequency = t.aerodynamics.weaveFrequency;
+                aeroComp.enableActiveAero = t.aerodynamics.enableActiveAero;
+                aeroComp.maxAeroAngle = t.aerodynamics.maxAeroAngle;
+            }
 
             // =========================
-            // FINAL SYNC
+            // TYRES
             // =========================
+            if (tyresComp != null && t.tyres != null)
+            {
+                tyresComp.longitudinalPeakSlip = t.tyres.longitudinalPeakSlip;
+                tyresComp.longitudinalPeakValue = t.tyres.longitudinalPeakValue;
+                tyresComp.longitudinalAsymptoteValue = t.tyres.longitudinalAsymptoteValue;
+                tyresComp.longitudinalStiffness = t.tyres.longitudinalStiffness;
+                tyresComp.peakSlipAngleDeg = t.tyres.peakSlipAngleDeg;
+                tyresComp.lateralPeakValue = t.tyres.lateralPeakValue;
+                tyresComp.lateralAsymptoteValue = t.tyres.lateralAsymptoteValue;
+                tyresComp.lateralStiffness = t.tyres.lateralStiffness;
+                tyresComp.rwdRearSlipMultiplier = t.tyres.rwdRearSlipMultiplier;
+                tyresComp.driftGripMultiplier = t.tyres.driftGripMultiplier;
+                tyresComp.enableTireTemperature = t.tyres.enableTireTemperature;
+                tyresComp.optimalTempC = t.tyres.optimalTempC;
+                tyresComp.ambientTempC = t.tyres.ambientTempC;
+                tyresComp.heatRatePerSlip = t.tyres.heatRatePerSlip;
+                tyresComp.coolingRate = t.tyres.coolingRate;
+                tyresComp.enableTirePressure = t.tyres.enableTirePressure;
+                tyresComp.tirePressurePsi = t.tyres.tirePressurePsi;
+                tyresComp.enableFrontSteeringTug = t.tyres.enableFrontSteeringTug;
+                tyresComp.frontTugSlipThreshold = t.tyres.frontTugSlipThreshold;
+                tyresComp.frontTugStiffnessReduction = t.tyres.frontTugStiffnessReduction;
+            }
 
-            Debug.Log("[Tuning] All settings applied successfully");
+            // =========================
+            // BODY DYNAMICS
+            // =========================
+            if (bodyDynComp != null && t.bodyDynamics != null)
+            {
+                bodyDynComp.pitchTorqueGain = t.bodyDynamics.pitchTorqueGain;
+                bodyDynComp.pitchInputMultiplier = t.bodyDynamics.pitchInputMultiplier;
+                bodyDynComp.verticalForceCoupleStrength = t.bodyDynamics.verticalForceCoupleStrength;
+                bodyDynComp.forceCoupleDistance = t.bodyDynamics.forceCoupleDistance;
+                bodyDynComp.rollTorqueGain = t.bodyDynamics.rollTorqueGain;
+                bodyDynComp.rollSpeedFactor = t.bodyDynamics.rollSpeedFactor;
+                bodyDynComp.rollMinSpeedKMH = t.bodyDynamics.rollMinSpeedKMH;
+                bodyDynComp.autoTuneByDrivetrain = t.bodyDynamics.autoTuneByDrivetrain;
+                bodyDynComp.squatDiveStrength = t.bodyDynamics.squatDiveStrength;
+                bodyDynComp.rollIntensity = t.bodyDynamics.rollIntensity;
+            }
         }
 
         static void ApplyWheel(
@@ -369,8 +528,10 @@ namespace AtlasAuto.Compiler
         {
             if (src == null || parts == null) return;
 
-            var w = parts["wheel" + (front ? "f" : "r") + (left ? "l" : "r") + "_coll"].GetComponent<VehicleWheel>();
+            string key = "wheel" + (front ? "f" : "r") + (left ? "l" : "r") + "_coll";
+            if (!parts.ContainsKey(key)) return;
 
+            var w = parts[key].GetComponent<VehicleWheel>();
             if (w == null) return;
 
             w.isFront = src.isFront;

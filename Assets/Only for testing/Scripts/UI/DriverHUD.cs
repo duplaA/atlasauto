@@ -17,6 +17,7 @@ public class DriverHUD : MonoBehaviour
     public float collapsedHeight = 180f;
     public float expandedHeight = 280f;
     [Range(0.5f, 1.5f)] public float uiScale = 1.0f;
+    [Range(0.5f, 1.5f)] public float displaySpeedMultiplier = 1.0f;
 
     // UI References
     private UIDocument uiDocument;
@@ -340,7 +341,11 @@ public class DriverHUD : MonoBehaviour
     {
         if (vehicle == null) return;
 
-        if (speedValue != null) speedValue.text = Mathf.RoundToInt(vehicle.SpeedKMH).ToString();
+        if (speedValue != null) 
+        {
+            float displaySpeed = vehicle.SpeedKMH * displaySpeedMultiplier;
+            speedValue.text = Mathf.RoundToInt(displaySpeed).ToString();
+        }
         if (gearDisplay != null) gearDisplay.text = vehicle.GearDisplay;
         if (drivetrainLabel != null) drivetrainLabel.text = vehicle.Drivetrain.ToString();
         if (hpValue != null) hpValue.text = $"{Mathf.RoundToInt(vehicle.HorsepowerHP)} HP";

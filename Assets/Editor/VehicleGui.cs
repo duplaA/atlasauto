@@ -10,11 +10,6 @@ using System.Reflection;
 
 namespace AtlasAuto
 {
-    internal struct AutoConfig
-    {
-
-    }
-
     public class VehicleGui : EditorWindow
     {
         static VehicleGui currentGui;
@@ -31,19 +26,22 @@ namespace AtlasAuto
 
             gui.titleContent = new GUIContent("Vehicle Editor");
 
-            gui.maxSize = new Vector2(800, 600);
-            gui.minSize = new Vector2(600, 400);
-            gui.position = new Rect(gui.position.x, gui.position.y, 800, 600);
+            gui.maxSize = new Vector2(1600, 1200);
+            gui.minSize = new Vector2(1000, 600);
+            gui.position = new Rect(gui.position.x, gui.position.y, 1200, 800);
             currentGui = gui;
         }
 
         Label integrity;
         Button beginBtn;
+        Button editExistingBtn;
         VisualElement parts;
         VisualElement renderImage;
         ScrollView partScroll;
 
         bool doPreviewRender = false;
+
+        GameObject existingVehicleRoot;
 
         PreviewRenderer renderer;
 
@@ -68,6 +66,8 @@ namespace AtlasAuto
         VisualElement renderPage;
 
         Button saveAsPrefab;
+        Button importBtn;
+        Button applyChangesBtn;
 
         Dictionary<string, GameObject> carParts;
 
@@ -90,6 +90,7 @@ namespace AtlasAuto
             parts = root.Q<VisualElement>("Parts");
             partScroll = root.Q<ScrollView>("CarParts");
             saveAsPrefab = root.Q<Button>("PrefabBtn");
+            importBtn = root.Q<Button>("ImportBtn");
 
             renderer.InitRenderer(512);
 
@@ -183,6 +184,91 @@ namespace AtlasAuto
                 tuningPage.parent.style.display = DisplayStyle.None;
                 renderPage.style.display = DisplayStyle.Flex;
             };
+
+            // Edit existing vehicle button
+            editExistingBtn = root.Q<Button>("EditExistingBtn");
+            if (editExistingBtn != null)
+            {
+                editExistingBtn.clicked += EditExistingVehicle;
+                editExistingBtn.SetEnabled(false);
+
+                // Check selection on open
+                CheckExistingVehicleSelection();
+                Selection.selectionChanged += CheckExistingVehicleSelection;
+            }
+
+            // Apply changes button (hidden by default, shown when editing existing)
+            applyChangesBtn = root.Q<Button>("ApplyChangesBtn");
+            if (applyChangesBtn != null)
+            {
+                applyChangesBtn.style.display = DisplayStyle.None;
+                applyChangesBtn.clicked += ApplyChangesToExisting;
+            }
+        }
+
+        void CheckExistingVehicleSelection()
+        {
+            if (editExistingBtn == null) return;
+
+            var selected = Selection.activeGameObject;
+            if (selected != null && selected.GetComponent<VehicleController>() != null)
+            {
+                editExistingBtn.SetEnabled(true);
+                editExistingBtn.text = $"Edit: {selected.name}";
+            }
+            else
+            {
+                editExistingBtn.SetEnabled(false);
+                editExistingBtn.text = "Edit Selected Vehicle (select one in scene)";
+            }
+        }
+
+        void EditExistingVehicle()
+        {
+            var selected = Selection.activeGameObject;
+            if (selected == null) return;
+
+            var controller = selected.GetComponent<VehicleController>();
+            if (controller == null)
+            {
+                EditorUtility.DisplayDialog("No Vehicle Found",
+                    "The selected object does not have a VehicleController component.", "OK");
+                return;
+            }
+
+            existingVehicleRoot = selected;
+
+            // Recreate tuning behaviours and populate from existing vehicle
+            tuningBehaviours = new TuningEditorBehaviours();
+            tuningBehaviours.PopulateFrom(controller);
+
+            // Switch to authoring tab (without preview/bake)
+            authoringTab.style.display = DisplayStyle.Flex;
+            modelTab.style.display = DisplayStyle.None;
+
+            // Hide new-vehicle buttons, show apply button
+            if (importBtn != null) importBtn.style.display = DisplayStyle.None;
+            if (saveAsPrefab != null) saveAsPrefab.style.display = DisplayStyle.None;
+            if (applyChangesBtn != null) applyChangesBtn.style.display = DisplayStyle.Flex;
+
+            // Hide preview since we're editing an existing vehicle
+            renderPage.style.display = DisplayStyle.None;
+            tuningPage.parent.style.display = DisplayStyle.Flex;
+
+            RenderEditorSidebar(sideBarHolder);
+        }
+
+        void ApplyChangesToExisting()
+        {
+            if (existingVehicleRoot == null)
+            {
+                EditorUtility.DisplayDialog("Error", "No vehicle to apply changes to.", "OK");
+                return;
+            }
+
+            CarCompilerManager.ApplySettingsToExisting(existingVehicleRoot, tuningBehaviours);
+            EditorUtility.DisplayDialog("Success", 
+                $"Settings applied to {existingVehicleRoot.name}.", "OK");
         }
 
         void ready(bool showParts = false)
@@ -281,6 +367,13 @@ namespace AtlasAuto
 
         void BeginAuthoring()
         {
+            existingVehicleRoot = null;
+
+            // Show new-vehicle buttons, hide apply button
+            if (importBtn != null) importBtn.style.display = DisplayStyle.Flex;
+            if (saveAsPrefab != null) saveAsPrefab.style.display = DisplayStyle.Flex;
+            if (applyChangesBtn != null) applyChangesBtn.style.display = DisplayStyle.None;
+
             AuthorTab();
         }
 
@@ -293,6 +386,7 @@ namespace AtlasAuto
             renderer.ApplyCosmetics();
             RenderEditorSidebar(sideBarHolder);
         }
+
         void UpdatePreview()
         {
             if (!doPreviewRender) return;
@@ -306,6 +400,7 @@ namespace AtlasAuto
         void Clean()
         {
             EditorApplication.update -= UpdatePreview;
+            Selection.selectionChanged -= CheckExistingVehicleSelection;
             renderer.Clean();
         }
 
@@ -365,6 +460,8 @@ namespace AtlasAuto
                 if (f.FieldType == typeof(int) || f.FieldType == typeof(float) || f.FieldType == typeof(double))
                 {
                     var attr = f.GetCustomAttribute<EditorRangeAttribute>();
+                    if (attr == null) continue; // Skip fields without range
+
                     var propHolder = new VisualElement();
                     propHolder.AddToClassList("editorProperty");
                     var labelHolder = new VisualElement();
@@ -379,7 +476,7 @@ namespace AtlasAuto
                         nameLabel.text = FormatName(f.Name);
 
                     var valueLabel = new Label();
-                    valueLabel.text = value.ToString("F0");
+                    valueLabel.text = value.ToString("F2");
 
                     labelHolder.Add(nameLabel);
                     labelHolder.Add(valueLabel);
@@ -389,14 +486,16 @@ namespace AtlasAuto
                     slider.highValue = attr.Max;
                     if (value < attr.Min)
                         slider.value = attr.Min;
+                    else if (value > attr.Max)
+                        slider.value = attr.Max;
                     else
                         slider.value = value;
 
-                    valueLabel.text = slider.value.ToString("F0");
+                    valueLabel.text = slider.value.ToString("F2");
 
                     slider.RegisterValueChangedCallback(evt =>
                     {
-                        valueLabel.text = evt.newValue.ToString("F0");
+                        valueLabel.text = evt.newValue.ToString("F2");
                         f.SetValue(pageParent, evt.newValue);
                     });
 
@@ -427,6 +526,24 @@ namespace AtlasAuto
 
                 }
 
+                else if (f.FieldType == typeof(Vector3))
+                {
+                    var vec3Field = new Vector3Field();
+                    if (nameInEditor != null)
+                        vec3Field.label = nameInEditor.Name;
+                    else
+                        vec3Field.label = FormatName(f.Name);
+
+                    vec3Field.value = (Vector3)f.GetValue(pageParent);
+
+                    vec3Field.RegisterValueChangedCallback(evt =>
+                    {
+                        f.SetValue(pageParent, evt.newValue);
+                    });
+
+                    tuningPage.Add(vec3Field);
+                }
+
                 else if (f.FieldType.IsEnum)
                 {
                     var dropdown = new DropdownField();
@@ -452,6 +569,7 @@ namespace AtlasAuto
 
         void RenderEditorSidebar(VisualElement holder)
         {
+            holder.Clear();
             foreach (var f in tuningBehaviours.GetType().GetFields())
             {
                 var atr = f.GetCustomAttribute<ExportToSidebarAttribute>();

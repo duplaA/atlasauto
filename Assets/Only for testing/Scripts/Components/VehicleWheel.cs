@@ -17,13 +17,25 @@ public class VehicleWheel : MonoBehaviour
     [Header("Steering Animation")]
     [Tooltip("How fast the wheel turns to target angle (degrees/second)")]
     public float steerSpeed = 120f;
+    
+    [Header("Tire Deformation")]
+    [Tooltip("Enable tire deformation (squash/stretch) under load and slip.")]
+    public bool enableTireDeformation = true;
+    [Tooltip("Maximum tire deformation scale (2-5% typical).")]
+    [Range(0f, 0.1f)] public float maxDeformationScale = 0.03f;
+    [Tooltip("Slip threshold for visible tire spin overspin (0.15 typical).")]
+    [Range(0.05f, 0.3f)] public float slipOverspinThreshold = 0.15f;
 
     // Internal state
     private float currentSteerAngle = 0f;
     private float visualRotation = 0f;
+    private Vector3 originalScale = Vector3.one;
 
     /// <summary>Normalized suspension deflection 0 (extended) to 1 (compressed). Updated in UpdateVisuals.</summary>
     public float SuspensionDeflection { get; private set; }
+    
+    /// <summary>Last forward slip value (for external access).</summary>
+    public float LastForwardSlip { get; private set; }
 
     // Removed internal LateUpdate - VehicleController will drive this now for perfect sync
     
@@ -52,6 +64,11 @@ public class VehicleWheel : MonoBehaviour
         {
             Debug.LogWarning($"[VehicleWheel] {gameObject.name}: No wheelVisual assigned. Visual sync will be skipped.");
         }
+        else
+        {
+            // Store original scale for tire deformation
+            originalScale = wheelVisual.localScale;
+        }
     }
 
     /// Updates the visual wheel state (Steering and Spin)
@@ -59,9 +76,14 @@ public class VehicleWheel : MonoBehaviour
     /// <param name="targetSteer">Target steering angle in degrees</param>
     /// <param name="driveSpeedMS">Vehicle speed in m/s (controls spin speed)</param>
     /// <param name="wheelRadius">Radius to calculate spin from speed</param>
-    public void UpdateVisuals(float targetSteer, float driveSpeedMS, float wheelRadius)
+    /// <param name="forwardSlip">Forward slip ratio (positive = spinning faster than ground)</param>
+    /// <param name="lateralSlip">Lateral slip angle (for tire deformation)</param>
+    public void UpdateVisuals(float targetSteer, float driveSpeedMS, float wheelRadius, float forwardSlip = 0f, float lateralSlip = 0f)
     {
         if (wheelCollider == null || wheelVisual == null) return;
+
+        // Store slip for external access
+        LastForwardSlip = forwardSlip;
 
         // 1. Position from Physics (Suspension travel)
         Vector3 pos;
@@ -81,28 +103,57 @@ public class VehicleWheel : MonoBehaviour
         // 2. Smooth Steering
         currentSteerAngle = Mathf.MoveTowards(currentSteerAngle, targetSteer, steerSpeed * Time.deltaTime);
 
-        // 3. Spin
-        // Calculate RPM from Speed: RPM = (Speed / Circumference) * 60
-        // Spin Speed (Deg/Sec) = RPM * 6
+        // 3. Spin with slip-based overspin
         float circumference = 2f * Mathf.PI * wheelRadius;
-        float arcadeRPM = (driveSpeedMS * 30f) / circumference;
+        float speedBasedRPM = (driveSpeedMS * 60f) / circumference;
         
-        // "Slower" visual style (0.1f multiplier)
-        float spinDegreesPerSec = arcadeRPM * 6f * 0.1f; 
+        // Use actual wheel RPM when slip is high (overspin)
+        float actualRPM = wheelCollider.rpm;
+        float absForwardSlip = Mathf.Abs(forwardSlip);
+        float slipBlend = 0f;
         
-        // Apply direction based on speed sign (roughly).
-        // In a real game we'd pass signed speed.
+        if (absForwardSlip > slipOverspinThreshold)
+        {
+            // Blend to actual RPM when slipping (wheel spins faster than ground)
+            slipBlend = Mathf.Clamp01((absForwardSlip - slipOverspinThreshold) / 0.2f); // Full blend at 0.35 slip
+            float effectiveRPM = Mathf.Lerp(speedBasedRPM, actualRPM, slipBlend);
+            speedBasedRPM = effectiveRPM;
+        }
+        
+        // 1 RPM = 6 degrees/sec
+        float spinDegreesPerSec = speedBasedRPM * 6f;
+        
         visualRotation += spinDegreesPerSec * Time.deltaTime;
 
         // 4. Reconstruct Rotation
-        // Base: WheelCollider parent rotation (Car Body + Local Offset)
-        // wheelCollider.transform.rotation gives us the mounting point's rotation.
-        
         Quaternion mountingRot = wheelCollider.transform.rotation;
         Quaternion steerRot = Quaternion.Euler(0, currentSteerAngle, 0);
         Quaternion spinRot = Quaternion.Euler(visualRotation, 0, 0);
 
         wheelVisual.rotation = mountingRot * steerRot * spinRot;
+        
+        // 5. Tire Deformation (optional)
+        if (enableTireDeformation && originalScale != Vector3.zero)
+        {
+            ApplyTireDeformation(absForwardSlip, Mathf.Abs(lateralSlip));
+        }
+    }
+    
+    void ApplyTireDeformation(float forwardSlip, float lateralSlip)
+    {
+        // Deformation: Y (vertical) compresses, X/Z stretch slightly under heavy slip
+        float forwardDeform = Mathf.Clamp01(forwardSlip / 0.5f); // Max at 0.5 slip
+        float lateralDeform = Mathf.Clamp01(lateralSlip / 0.3f); // Max at 0.3 lateral slip
+        
+        float deformAmount = Mathf.Max(forwardDeform, lateralDeform) * maxDeformationScale;
+        
+        // Y compresses (squash), X/Z stretch slightly
+        Vector3 deformScale = originalScale;
+        deformScale.y *= (1f - deformAmount * 0.5f); // Compress vertically
+        deformScale.x *= (1f + deformAmount * 0.3f); // Stretch horizontally
+        deformScale.z *= (1f + deformAmount * 0.3f); // Stretch forward/back
+        
+        wheelVisual.localScale = deformScale;
     }
 
     /// Applies motor torque to the wheel.

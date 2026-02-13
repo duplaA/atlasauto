@@ -21,11 +21,11 @@ public class VehicleSetupEditor : Editor
 
     private SuspensionPreset selectedPreset = SuspensionPreset.Medium;
 
-    [MenuItem("Tools/AtlasAuto/Setup Selected Vehicle Wheels")]
+    [MenuItem("Tools/AtlasAuto/Setup Selected Vehicle Wheels", false, 0)]
     public static void SetupSelectedVehicle()
     {
         GameObject go = Selection.activeGameObject;
-        if (go == null) 
+        if (go == null)
         {
             Debug.LogWarning("No vehicle selected.");
             return;
@@ -33,13 +33,19 @@ public class VehicleSetupEditor : Editor
         VehicleController vc = go.GetComponent<VehicleController>();
         if (vc == null)
         {
-             if (EditorUtility.DisplayDialog("Setup Vehicle", "Selected object does not have a VehicleController. Add one?", "Yes", "No"))
-             {
-                 vc = go.AddComponent<VehicleController>();
-             }
-             else return;
+            if (EditorUtility.DisplayDialog("Setup Vehicle", "Selected object does not have a VehicleController. Add one?", "Yes", "No"))
+            {
+                vc = go.AddComponent<VehicleController>();
+            }
+            else return;
         }
         SetupWheels(vc);
+    }
+
+    [MenuItem("Tools/AtlasAuto/Setup Selected Vehicle Wheels", true)]
+    public static bool SetupSelectedVehicleValidate()
+    {
+        return Selection.activeGameObject != null;
     }
 
     public override void OnInspectorGUI()
