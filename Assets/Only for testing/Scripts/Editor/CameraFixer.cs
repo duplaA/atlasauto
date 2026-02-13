@@ -7,7 +7,7 @@ using UnityEditor;
 public class CameraFixer : MonoBehaviour
 {
 #if UNITY_EDITOR
-    [MenuItem("Tools/Atlas Auto/Fix Cameras")]
+    [MenuItem("Tools/AtlasAuto/Fix Cameras")]
     public static void FixCameras()
     {
         int count = 0;

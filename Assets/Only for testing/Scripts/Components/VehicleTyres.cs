@@ -25,9 +25,12 @@ public class VehicleTyres : MonoBehaviour
     [Tooltip("Base stiffness for sideways friction")]
     [Range(1.5f, 3.5f)] public float lateralStiffness = 2.5f;
 
+
     [Header("RWD Rear Slip Multiplier")]
     [Tooltip("Rear wheel slip/grip multiplier for RWD (1.15-1.35 typical). 1 = no extra.")]
     [Range(1f, 1.5f)] public float rwdRearSlipMultiplier = 1.2f;
+    [Tooltip("Lateral grip multiplier when drifting/handbraking (0.3-0.8 typical)")]
+    [Range(0.1f, 1f)] public float driftGripMultiplier = 0.5f;
 
     [Header("Drivetrain (set by VehicleController or inspector)")]
     public VehicleController.DrivetrainType drivetrain = VehicleController.DrivetrainType.RWD;
@@ -80,10 +83,14 @@ public class VehicleTyres : MonoBehaviour
         return Mathf.Clamp(g, 0.7f, 1f);
     }
 
-    public void UpdateFriction(VehicleWheel[] wheels)
+    public void UpdateFriction(VehicleWheel[] wheels, float driftFactor = 1.0f)
     {
         if (wheels == null) return;
-
+        
+        // driftFactor: 1 = normal, 0 = full drift (all grip lost sideways?) No, it's a multiplier.
+        // Let's say driftFactor is "how much we are drifting", 0 to 1.
+        // Actually, driftFactor should be "the grip multiplier applied during drift".
+        
         float lateralExtremumSlip = SlipAngleToSlipRatio(peakSlipAngleDeg);
         bool isRWD = drivetrain == VehicleController.DrivetrainType.RWD;
 
@@ -91,6 +98,24 @@ public class VehicleTyres : MonoBehaviour
         {
             var w = wheels[i];
             if (w.wheelCollider == null) continue;
+
+            // Apply drift modifier to REAR wheels primarily, or all if handbrake? 
+            // Usually handbrake locks rear.
+            // Let's assume driftFactor is applied to all wheels if provided, but caller handles logic.
+            // Wait, if handbrake is pulled, front wheels should spin freely (if RWD) but rear should slide.
+            // The caller (VehicleController) should pass specific modifiers per wheel?
+            // "UpdateFriction" updates ALL wheels.
+            // Let's just use a global multiplier for now, and rely on the controller to manage individual brake torques.
+            // But side friction needs to drop for rear wheels to swing out.
+            
+            float driftMult = 1f;
+            if (driftFactor < 0.99f)
+            {
+                 // If driftFactor is < 1, apply it.
+                 // We apply it more to rear wheels to help rotation?
+                 if (!w.isFront) driftMult = driftFactor;
+                 else driftMult = Mathf.Lerp(1f, driftFactor, 0.5f); // Less slip on front to maintain steering?
+            }
 
             float rearMult = (isRWD && !w.isFront) ? rwdRearSlipMultiplier : 1f;
             float tempMult = GetGripMultiplierFromTemp(i);
@@ -105,7 +130,7 @@ public class VehicleTyres : MonoBehaviour
 
             WheelFrictionCurve side = w.wheelCollider.sidewaysFriction;
             side.extremumSlip = lateralExtremumSlip;
-            side.extremumValue = (lateralPeakValue * rearMult) * tempMult * pressureMult;
+            side.extremumValue = (lateralPeakValue * rearMult) * tempMult * pressureMult * driftMult;
             side.asymptoteValue = lateralAsymptoteValue;
             w.wheelCollider.sidewaysFriction = side;
         }

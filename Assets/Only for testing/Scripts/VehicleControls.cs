@@ -118,6 +118,15 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Handbrake"",
+                    ""type"": ""Button"",
+                    ""id"": ""c1d2e3f4-05a6-4890-8bce-d12345678901"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -208,6 +217,17 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
                     ""action"": ""ShiftDown"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e5f6a7b8-c9d0-4234-abcd-567890123456"",
+                    ""path"": ""<Keyboard>/space"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Handbrake"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -219,6 +239,7 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
         m_Vehicle_Move = m_Vehicle.FindAction("Move", throwIfNotFound: true);
         m_Vehicle_ShiftUp = m_Vehicle.FindAction("ShiftUp", throwIfNotFound: true);
         m_Vehicle_ShiftDown = m_Vehicle.FindAction("ShiftDown", throwIfNotFound: true);
+        m_Vehicle_Handbrake = m_Vehicle.FindAction("Handbrake", throwIfNotFound: true);
     }
 
     ~@VehicleControls()
@@ -302,6 +323,7 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Vehicle_Move;
     private readonly InputAction m_Vehicle_ShiftUp;
     private readonly InputAction m_Vehicle_ShiftDown;
+    private readonly InputAction m_Vehicle_Handbrake;
     /// <summary>
     /// Provides access to input actions defined in input action map "Vehicle".
     /// </summary>
@@ -325,6 +347,10 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Vehicle/ShiftDown".
         /// </summary>
         public InputAction @ShiftDown => m_Wrapper.m_Vehicle_ShiftDown;
+        /// <summary>
+        /// Provides access to the underlying input action "Vehicle/Handbrake".
+        /// </summary>
+        public InputAction @Handbrake => m_Wrapper.m_Vehicle_Handbrake;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -360,6 +386,9 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
             @ShiftDown.started += instance.OnShiftDown;
             @ShiftDown.performed += instance.OnShiftDown;
             @ShiftDown.canceled += instance.OnShiftDown;
+            @Handbrake.started += instance.OnHandbrake;
+            @Handbrake.performed += instance.OnHandbrake;
+            @Handbrake.canceled += instance.OnHandbrake;
         }
 
         /// <summary>
@@ -380,6 +409,9 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
             @ShiftDown.started -= instance.OnShiftDown;
             @ShiftDown.performed -= instance.OnShiftDown;
             @ShiftDown.canceled -= instance.OnShiftDown;
+            @Handbrake.started -= instance.OnHandbrake;
+            @Handbrake.performed -= instance.OnHandbrake;
+            @Handbrake.canceled -= instance.OnHandbrake;
         }
 
         /// <summary>
@@ -441,5 +473,12 @@ public partial class @VehicleControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnShiftDown(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Handbrake" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnHandbrake(InputAction.CallbackContext context);
     }
 }

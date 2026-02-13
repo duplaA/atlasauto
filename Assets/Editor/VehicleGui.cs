@@ -18,8 +18,7 @@ namespace AtlasAuto
     public class VehicleGui : EditorWindow
     {
         static VehicleGui currentGui;
-
-        [MenuItem("Window/AtlasAuto/Open Car Creator")]
+        [MenuItem("Tools/AtlasAuto/Vehicle Editor")]
         static void OpenGui()
         {
             if (currentGui != null)

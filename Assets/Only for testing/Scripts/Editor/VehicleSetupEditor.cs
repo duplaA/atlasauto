@@ -18,7 +18,29 @@ public class VehicleSetupEditor : Editor
         OffRoad     // Long travel, soft
     }
 
+
     private SuspensionPreset selectedPreset = SuspensionPreset.Medium;
+
+    [MenuItem("Tools/AtlasAuto/Setup Selected Vehicle Wheels")]
+    public static void SetupSelectedVehicle()
+    {
+        GameObject go = Selection.activeGameObject;
+        if (go == null) 
+        {
+            Debug.LogWarning("No vehicle selected.");
+            return;
+        }
+        VehicleController vc = go.GetComponent<VehicleController>();
+        if (vc == null)
+        {
+             if (EditorUtility.DisplayDialog("Setup Vehicle", "Selected object does not have a VehicleController. Add one?", "Yes", "No"))
+             {
+                 vc = go.AddComponent<VehicleController>();
+             }
+             else return;
+        }
+        SetupWheels(vc);
+    }
 
     public override void OnInspectorGUI()
     {
@@ -51,7 +73,7 @@ public class VehicleSetupEditor : Editor
         }
     }
 
-    private void ApplySuspensionPreset(VehicleController controller, SuspensionPreset preset)
+    private static void ApplySuspensionPreset(VehicleController controller, SuspensionPreset preset)
     {
         WheelCollider[] wheelColliders = controller.GetComponentsInChildren<WheelCollider>();
         if (wheelColliders.Length == 0)
@@ -118,7 +140,7 @@ public class VehicleSetupEditor : Editor
         Debug.Log($"[VehicleSetup] Applied '{preset}' suspension preset to {wheelColliders.Length} wheels.");
     }
 
-    private void SetupWheels(VehicleController controller)
+    public static void SetupWheels(VehicleController controller)
     {
         // Find all children tagged "Wheel"
         Transform[] allChildren = controller.GetComponentsInChildren<Transform>();
@@ -226,7 +248,7 @@ public class VehicleSetupEditor : Editor
         EditorUtility.SetDirty(controller.gameObject);
     }
 
-    private void SetupAntiRollBars(VehicleController controller, List<VehicleWheel> wheels)
+    private static void SetupAntiRollBars(VehicleController controller, List<VehicleWheel> wheels)
     {
         List<VehicleWheel> frontWheels = new List<VehicleWheel>();
         List<VehicleWheel> rearWheels = new List<VehicleWheel>();
@@ -275,7 +297,7 @@ public class VehicleSetupEditor : Editor
         Debug.Log("[VehicleSetup] Anti-roll bars configured.");
     }
 
-    private void ClearWheelSetup(VehicleController controller)
+    public static void ClearWheelSetup(VehicleController controller)
     {
         Transform collidersParent = controller.transform.Find("WheelColliders");
         if (collidersParent != null)
@@ -289,7 +311,7 @@ public class VehicleSetupEditor : Editor
         }
     }
 
-    private float GetMaxScale(Transform t)
+    private static float GetMaxScale(Transform t)
     {
         Vector3 scale = t.lossyScale;
         return Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z));

@@ -11,6 +11,16 @@ public class VehicleController : MonoBehaviour
     public VehicleTransmission transmission;
     public VehicleTyres tyres;
     public VehicleSuspension suspension;
+    
+    [Header("Drift & Handbrake")]
+    public bool enableDriftAssist = true;
+    [Tooltip("Sideways friction multiplier when handbrake is pulled (0.2-0.5 typical)")]
+    public float handbrakeSlipMultiplier = 0.4f;
+    [Tooltip("How much the car naturally wants to rotate when drifting")]
+    public float driftSpinFactor = 0.5f;
+
+    // Input state
+    public bool isHandbrakePulled { get; private set; }
 
     [Header("Powertrain")]
     [Tooltip("Master EV toggle. Syncs engine type and transmission behavior.")]
@@ -352,6 +362,11 @@ public class VehicleController : MonoBehaviour
         transmission.ShiftTo(nextGear);
     }
 
+    public void OnHandbrake(InputValue value)
+    {
+        isHandbrakePulled = value.isPressed;
+    }
+
     void LateUpdate()
     {
         Vector2 input = EffectiveInput;
@@ -509,7 +524,11 @@ public class VehicleController : MonoBehaviour
         weightShiftPercentStored = weightShift;
         if (suspension == null) suspension = GetComponent<VehicleSuspension>();
         if (suspension != null) suspension.UpdateSuspension(wheels, weightShiftPercentStored);
-        if (tyres != null) tyres.UpdateFriction(wheels);
+        
+        float driftFactor = 1f;
+        if (isHandbrakePulled) driftFactor = handbrakeSlipMultiplier;
+        
+        if (tyres != null) tyres.UpdateFriction(wheels, driftFactor);
         
         // Calculate lateral slip for counter-steer and drift detection
         Vector3 localVel = transform.InverseTransformDirection(rb.linearVelocity);
@@ -661,7 +680,7 @@ public class VehicleController : MonoBehaviour
         // 2. Stable Counter-Steer Assist
         // Only apply if significant slip is detected and we are moving fast enough
         // Deadzone included to prevent micro-corrections (wiggling)
-        if (counterSteerAssist > 0f && speedKMH > 30f)
+        if (counterSteerAssist > 0f && (speedKMH > 30f || isHandbrakePulled))
         {
             Vector3 assistLocalVel = transform.InverseTransformDirection(rb.linearVelocity);
             float rawSlip = assistLocalVel.x / Mathf.Max(speedMS, 1.0f); // Normalized slip
@@ -755,6 +774,11 @@ public class VehicleController : MonoBehaviour
                 if (maxSlipRatio > 0.15f)
                     brakeTorque *= Mathf.Clamp01(0.15f / maxSlipRatio);
                 w.wheelCollider.brakeTorque = brakeTorque;
+            }
+            else if (isHandbrakePulled && !w.isFront)
+            {
+                 // Handbrake locks rear wheels
+                 w.wheelCollider.brakeTorque = maxBrakeTorque * brakePressureMultiplier * 1.5f;
             }
             else if (Mathf.Abs(input.y) < 0.1f && speedKMH < 2f && !isInputReleaseRequired)
             {
