@@ -988,6 +988,8 @@ public class VehicleController : MonoBehaviour
         }
         if (!speedSensitiveSteering) return input * maxSteerAngle;
         float speedFactor = Mathf.InverseLerp(10f, 120f, speedKMH);
-        return input * Mathf.Lerp(maxSteerAngle, maxSteerAngle * 0.7f, speedFactor);
+        // SIGNIFICANTLY reduce steering angle at high speeds to prevent instability
+        // At 120km/h+, we only want ~3-5 degrees of steering, not 24+
+        return input * Mathf.Lerp(maxSteerAngle, 4f, speedFactor);
     }
 }

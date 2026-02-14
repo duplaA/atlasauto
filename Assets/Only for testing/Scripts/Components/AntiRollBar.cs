@@ -101,14 +101,15 @@ public class AntiRollBar : MonoBehaviour
 
         if (grounded)
         {
-            // Calculate how compressed the suspension is
+            // Calculate how compressed the suspension is (0 = Full Compression, 1 = Full Extension)
+            // Note: We avoid clamping strictly to 0-1 to allow for transient physics spikes to be handled by the force
             float fullTravel = wc.suspensionDistance;
-            float currentCompression = (-wc.transform.InverseTransformPoint(hit.point).y - wc.radius) / fullTravel;
-            return Mathf.Clamp01(currentCompression);
+            float currentExtension = (-wc.transform.InverseTransformPoint(hit.point).y - wc.radius) / fullTravel;
+            return currentExtension;
         }
         else
         {
-            return 1f; // Fully extended when not grounded
+            return 1.0f; // Fully extended when not grounded
         }
     }
 }
